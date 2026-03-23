@@ -131,16 +131,25 @@ function renderGrid() {
     svg.appendChild(text);
   }
 }
-      if (showLineNumbers) {
+if (showLineNumbers) {
   for (let c = 0; c < cols; c++) {
     const text = document.createElementNS(svgNS, "text");
 
     text.textContent = c + 1;
-    text.setAttribute("x", offsetX + c * STITCH_SIZE + STITCH_SIZE / 2);
-    text.setAttribute("y", offsetY - 10);
-    text.setAttribute("text-anchor", "middle");
 
-    text.classList.add("line-number");
+    text.setAttribute("x", offsetX + c * STITCH_SIZE);
+
+    text.setAttribute(
+      "y",
+      offsetY + (rows - 1) * STITCH_SIZE * ROW_SPACING + 25
+    );
+
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "middle");
+
+    text.setAttribute("fill", "#000");
+    text.setAttribute("font-weight", "bold");
+    text.setAttribute("font-size", "14px");
 
     svg.appendChild(text);
   }
