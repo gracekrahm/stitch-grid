@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Knit Stitch Grid (Fixed + Centered)</title>
+<title>Knit Stitch Grid (Locked)</title>
 
 <style>
   body {
@@ -26,14 +26,6 @@
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
-
-/* ===== LOCKED SETTINGS (your optimal values) ===== */
-const STITCH_SIZE = 97;
-const ROW_SPACING = 0.79;
-const SCALE = 4;
-
-/* Change this to control fill color */
-const FILL_COLOR = "#ff0000";
 
 /* ===== STITCH PATH ===== */
 const stitchPathData = `
@@ -71,9 +63,15 @@ C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
 Z
 `;
 
-/* ===== RENDER ===== */
 function renderGrid() {
   svg.innerHTML = "";
+
+  /* ===== LOCKED VALUES (your optimal sliders) ===== */
+  const stitchSize = 97;
+  const rowSpacing = 0.79;
+  const scale = 4;
+
+  const color = "#000000"; // keep stroke black (fixed)
 
   const rows = 6;
   const cols = 10;
@@ -81,24 +79,12 @@ function renderGrid() {
   const canvasWidth = 900;
   const canvasHeight = 700;
 
-  const gridWidth = (cols - 1) * STITCH_SIZE;
-  const gridHeight = (rows - 1) * STITCH_SIZE * ROW_SPACING;
+  const gridWidth = (cols - 1) * stitchSize;
+  const gridHeight = (rows - 1) * stitchSize * rowSpacing;
 
-  // IMPORTANT: account for scaling when centering
-  const scaledWidth = gridWidth * SCALE;
-  const scaledHeight = gridHeight * SCALE;
-
-  const offsetX = (canvasWidth - scaledWidth) / 2;
-  const offsetY = (canvasHeight - scaledHeight) / 2;
-
-  const rootGroup = document.createElementNS(svgNS, "g");
-
-  rootGroup.setAttribute(
-    "transform",
-    `translate(${offsetX}, ${offsetY}) scale(${SCALE})`
-  );
-
-  svg.appendChild(rootGroup);
+  // SAME centering logic as your original code
+  const offsetX = (canvasWidth - gridWidth) / 2;
+  const offsetY = (canvasHeight - gridHeight) / 2;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -108,24 +94,35 @@ function renderGrid() {
       const path = document.createElementNS(svgNS, "path");
       path.setAttribute("d", stitchPathData);
 
-      // Keep outline black
-      path.setAttribute("stroke", "black");
+      // KEEP outline black
+      path.setAttribute("stroke", color);
 
-      // Fill controlled here
-      path.setAttribute("fill", FILL_COLOR);
+      // No fill (same as your original behavior)
+      path.setAttribute("fill", "none");
 
       group.appendChild(path);
+      svg.appendChild(group);
+
+      const bbox = path.getBBox();
+
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
 
       group.setAttribute(
         "transform",
-        `translate(${c * STITCH_SIZE}, ${r * STITCH_SIZE * ROW_SPACING})`
+        `
+        translate(${offsetX + c * stitchSize}, ${offsetY + r * stitchSize * rowSpacing})
+        translate(${-cx}, ${-cy})
+        `
       );
 
-      rootGroup.appendChild(group);
+      // Apply the SAME scale as before (now fixed at 4)
+      path.setAttribute("transform", `scale(${scale})`);
     }
   }
 }
 
+/* Initial render only */
 renderGrid();
 </script>
 
