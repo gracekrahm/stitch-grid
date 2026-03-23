@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Knit Chart Editor</title>
+
+<style>
+  body {
+    font-family: sans-serif;
+    background: #f5f5f5;
+    text-align: center;
+  }
+
+  h1 {
+    margin-top: 20px;
+  }
+
+  #toolbar {
+    margin: 15px;
+  }
+
+  .color-btn {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #333;
+    margin: 3px;
+    cursor: pointer;
+    display: inline-block;
+  }
+
+  .selected {
+    outline: 3px solid black;
+  }
+
+  #chart {
+    background: white;
+    border: 1px solid #ccc;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>Knit Chart Editor</h1>
+
+<div id="toolbar"></div>
+
+<svg id="chart" width="600" height="600"></svg>
+
+<script>
+const rows = 30
+const cols = 30
+const stitchSize = 18
+
+const colors = ["#ffffff", "#d62828", "#1d3557", "#2a9d8f", "#f4a261"]
+let currentColor = colors[1]
+
+// grid data
+let grid = Array.from({length: rows}, () => Array(cols).fill(colors[0]))
+
+const svg = document.getElementById("chart")
+const toolbar = document.getElementById("toolbar")
+
+// ---------- COLOR PALETTE ----------
+colors.forEach(color => {
+  const btn = document.createElement("div")
+  btn.className = "color-btn"
+  btn.style.background = color
+
+  if (color === currentColor) btn.classList.add("selected")
+
+  btn.onclick = () => {
+    currentColor = color
+    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("selected"))
+    btn.classList.add("selected")
+  }
+
+  toolbar.appendChild(btn)
+})
+
+// ---------- STITCH SHAPE ----------
+function createStitchPath() {
+  // Simple knit-like "V" shape
+  return `
+    M ${stitchSize/2} ${stitchSize*0.1}
+    C ${stitchSize*0.9} ${stitchSize*0.2},
+      ${stitchSize*0.9} ${stitchSize*0.8},
+      ${stitchSize/2} ${stitchSize*0.95}
+    C ${stitchSize*0.1} ${stitchSize*0.8},
+      ${stitchSize*0.1} ${stitchSize*0.2},
+      ${stitchSize/2} ${stitchSize*0.1}
+    Z
+  `
+}
+
+// ---------- BUILD GRID ----------
+for (let r = 0; r < rows; r++) {
+  for (let c = 0; c < cols; c++) {
+
+    const stitch = document.createElementNS("http://www.w3.org/2000/svg", "path")
+
+    stitch.setAttribute("d", createStitchPath())
+    stitch.setAttribute("fill", grid[r][c])
+    stitch.setAttribute("stroke", "#999")
+    stitch.setAttribute("stroke-width", "0.5")
+
+    // slight overlap for realism
+    stitch.setAttribute(
+      "transform",
+      `translate(${c * stitchSize}, ${r * stitchSize * 0.9})`
+    )
+
+    stitch.dataset.row = r
+    stitch.dataset.col = c
+
+    svg.appendChild(stitch)
+  }
+}
+
+// ---------- CLICK HANDLING ----------
+svg.addEventListener("click", (e) => {
+  if (e.target.tagName !== "path") return
+
+  const r = e.target.dataset.row
+  const c = e.target.dataset.col
+
+  grid[r][c] = currentColor
+  e.target.setAttribute("fill", currentColor)
+})
+
+// ---------- OPTIONAL: DRAG PAINT ----------
+let isMouseDown = false
+
+svg.addEventListener("mousedown", () => isMouseDown = true)
+svg.addEventListener("mouseup", () => isMouseDown = false)
+svg.addEventListener("mouseleave", () => isMouseDown = false)
+
+svg.addEventListener("mousemove", (e) => {
+  if (!isMouseDown) return
+  if (e.target.tagName !== "path") return
+
+  const r = e.target.dataset.row
+  const c = e.target.dataset.col
+
+  grid[r][c] = currentColor
+  e.target.setAttribute("fill", currentColor)
+})
+
+// ---------- SAVE FUNCTION ----------
+function exportPattern() {
+  const data = JSON.stringify(grid)
+  console.log(data)
+}
+
+</script>
+
+</body>
+</html>
