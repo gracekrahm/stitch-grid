@@ -3,8 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <title>Knit Grid</title>
+
 <style>
-  body { margin:0; font-family:sans-serif; background:#f5f5f5; }
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    background: #f5f5f5;
+  }
 
   #controls {
     position: fixed;
@@ -20,22 +25,15 @@
     width: 900px;
     height: 700px;
     margin: 80px auto;
-    overflow: hidden;
     background: white;
     border: 1px solid #ccc;
-  }
-
-  #canvasContainer {
     position: relative;
-    width: 100%;
-    height: 100%;
-    transform-origin: top left;
   }
 
   svg {
-    position: absolute;
-    top: 0;
-    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
   }
 
   #overlay {
@@ -45,14 +43,16 @@
     pointer-events: none;
   }
 
-  .num {
+  .label {
     position: absolute;
     font-weight: bold;
     color: black;
     font-size: 14px;
   }
 
-  input, button { margin: 4px; }
+  input, button {
+    margin: 4px;
+  }
 </style>
 </head>
 <body>
@@ -67,10 +67,8 @@
 </div>
 
 <div id="viewport">
-  <div id="canvasContainer">
-    <svg id="canvas" width="900" height="700"></svg>
-    <div id="overlay"></div>
-  </div>
+  <svg id="canvas"></svg>
+  <div id="overlay"></div>
 </div>
 
 <script src="script.js"></script>
