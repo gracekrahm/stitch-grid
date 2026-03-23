@@ -2,12 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Knit Stitch Grid</title>
+  <title>Knit Stitch Grid Controls</title>
   <style>
     body {
       margin: 0;
       background: #f5f5f5;
+      font-family: sans-serif;
     }
+
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 10;
+      width: 220px;
+    }
+
+    label {
+      font-size: 12px;
+      display: block;
+      margin-top: 8px;
+    }
+
+    input {
+      width: 100%;
+    }
+
     svg {
       display: block;
       margin: auto;
@@ -17,13 +41,27 @@
 </head>
 <body>
 
+<div id="controls">
+  <label>Stitch Size: <span id="stitchSizeVal"></span></label>
+  <input type="range" id="stitchSize" min="20" max="150" value="70" step="1">
+
+  <label>Row Spacing: <span id="rowSpacingVal"></span></label>
+  <input type="range" id="rowSpacing" min="0.5" max="1.5" value="0.9" step="0.01">
+
+  <label>Scale: <span id="scaleVal"></span></label>
+  <input type="range" id="scale" min="0.5" max="4" value="2" step="0.1">
+
+  <label>Stroke Color:</label>
+  <input type="color" id="color" value="#000000">
+</div>
+
 <svg id="canvas" width="900" height="700"></svg>
 
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
 
-/* ===== YOUR CURRENT STITCH PATH (compound path) ===== */
+/* ===== YOUR STITCH PATH ===== */
 const stitchPathData = `
 m 0,0
 c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
@@ -59,47 +97,59 @@ C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
 Z
 `;
 
-/* ===== RENDER FUNCTION ===== */
-function createStitch(c, r, stitchSize, scale) {
-  const group = document.createElementNS(svgNS, "g");
+let stitches = [];
 
-  const path = document.createElementNS(svgNS, "path");
-  path.setAttribute("d", stitchPathData);
-  path.setAttribute("fill", "none");
-  path.setAttribute("stroke", "black");
+function renderGrid() {
+  svg.innerHTML = "";
 
-  group.appendChild(path);
-  svg.appendChild(group);
+  const stitchSize = parseFloat(document.getElementById("stitchSize").value);
+  const rowSpacing = parseFloat(document.getElementById("rowSpacing").value);
+  const scale = parseFloat(document.getElementById("scale").value);
+  const color = document.getElementById("color").value;
 
-  // Compute bounding box AFTER attaching to DOM
-  const bbox = path.getBBox();
+  document.getElementById("stitchSizeVal").textContent = stitchSize;
+  document.getElementById("rowSpacingVal").textContent = rowSpacing;
+  document.getElementById("scaleVal").textContent = scale;
 
-  const cx = bbox.x + bbox.width / 2;
-  const cy = bbox.y + bbox.height / 2;
+  const rows = 6;
+  const cols = 10;
 
-  // Your layout transform + recentering
-  group.setAttribute(
-    "transform",
-    `
-    translate(${c * stitchSize}, ${r * stitchSize * 0.9})
-    scale(${scale})
-    translate(${-cx}, ${-cy})
-    `
-  );
-}
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const group = document.createElementNS(svgNS, "g");
 
-/* ===== GRID SETTINGS (keep yours adjustable) ===== */
-const rows = 6;
-const cols = 10;
-const stitchSize = 70;
-const scale = 2;
+      const path = document.createElementNS(svgNS, "path");
+      path.setAttribute("d", stitchPathData);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", color);
 
-/* ===== BUILD GRID ===== */
-for (let r = 0; r < rows; r++) {
-  for (let c = 0; c < cols; c++) {
-    createStitch(c, r, stitchSize, scale);
+      group.appendChild(path);
+      svg.appendChild(group);
+
+      const bbox = path.getBBox();
+
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
+
+      group.setAttribute(
+        "transform",
+        `
+        translate(${c * stitchSize}, ${r * stitchSize * rowSpacing})
+        scale(${scale})
+        translate(${-cx}, ${-cy})
+        `
+      );
+    }
   }
 }
+
+/* Hook up sliders */
+document.querySelectorAll("input").forEach(input => {
+  input.addEventListener("input", renderGrid);
+});
+
+/* Initial render */
+renderGrid();
 </script>
 
 </body>
