@@ -2,22 +2,20 @@ const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
 const overlay = document.getElementById("overlay");
 
-let rows = 6;
-let cols = 10;
+let rows = 6, cols = 10;
 let selectedColor = "#ff0000";
 let stitchColors = [];
 let isDrawing = false;
 
-/* ===== GAUGE SETTINGS ===== */
+/* GAUGE */
 const STITCH_SIZE = 97;
 const ROW_SPACING = 0.79;
-const SCALE = 4;
 
-/* ===== ZOOM ===== */
+/* ZOOM */
 let zoomLevel = 1;
 const zoomSlider = document.getElementById("zoomSlider");
 
-/* ===== STITCH PATH ===== */
+/* STITCH PATH */
 const stitchPathData = `
 m 0,0
 c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
@@ -37,184 +35,142 @@ C -1.70964,6.6598 -1.02979,5.2123 -0.78582,3.66371
 Z
 `;
 
-/* ===== PALETTE ===== */
-const paletteDiv = document.getElementById("palette");
-
-const defaultColors = [
-  "#ffffff","#000000","#ff0000","#0000ff",
-  "#00aa00","#ffff00","#ff00ff","#00ffff","#888888"
-];
-
+const defaultColors = ["#ffffff","#000000","#ff0000","#0000ff","#00aa00","#ffff00","#ff00ff","#00ffff","#888888"];
 let paletteColors = [...defaultColors];
+const paletteDiv = document.getElementById("palette");
 
 function renderPalette() {
   paletteDiv.innerHTML = "";
-  paletteColors.forEach(color => {
-    const swatch = document.createElement("div");
-    swatch.className = "swatch";
-    swatch.style.background = color;
-    swatch.onclick = () => selectedColor = color;
+  paletteColors.forEach(color=>{
+    const swatch=document.createElement("div");
+    swatch.className="swatch";
+    swatch.style.background=color;
+    swatch.onclick=()=>selectedColor=color;
     paletteDiv.appendChild(swatch);
   });
 }
 
-document.getElementById("saveColor").onclick = () => {
+document.getElementById("saveColor").onclick = ()=>{
   const color = document.getElementById("colorPicker").value;
-  if (!paletteColors.includes(color)) {
-    paletteColors.push(color);
-    renderPalette();
-  }
-  selectedColor = color;
-};
-
-/* ===== GRID INIT ===== */
-function initGrid(r, c) {
-  rows = r;
-  cols = c;
-  stitchColors = Array.from({ length: rows }, () =>
-    Array(cols).fill("#ffffff")
-  );
+  if(!paletteColors.includes(color)) paletteColors.push(color);
+  renderPalette();
+  selectedColor=color;
 }
 
-/* ===== RENDER GRID ===== */
-function renderGrid() {
-  svg.innerHTML = "";
-  overlay.innerHTML = "";
+function initGrid(r,c){
+  rows=r; cols=c;
+  stitchColors=Array.from({length:rows},()=>Array(cols).fill("#ffffff"));
+}
 
-  const canvasWidth = 900;
-  const canvasHeight = 700;
+function renderGrid(){
+  svg.innerHTML="";
+  overlay.innerHTML="";
+  const canvasWidth=900, canvasHeight=700;
+  const gridWidth=(cols-1)*STITCH_SIZE;
+  const gridHeight=(rows-1)*STITCH_SIZE*ROW_SPACING;
+  const offsetX=(canvasWidth-gridWidth)/2;
+  const offsetY=(canvasHeight-gridHeight)/2;
 
-  const gridWidth = (cols - 1) * STITCH_SIZE;
-  const gridHeight = (rows - 1) * STITCH_SIZE * ROW_SPACING;
+  // STITCHES
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const group=document.createElementNS(svgNS,"g");
+      const path=document.createElementNS(svgNS,"path");
+      path.setAttribute("d",stitchPathData);
+      path.setAttribute("stroke","#000");
+      path.setAttribute("fill",stitchColors[r][c]);
+      path.setAttribute("stroke-width","0.5");
+      path.style.cursor="pointer";
 
-  const offsetX = (canvasWidth - gridWidth) / 2;
-  const offsetY = (canvasHeight - gridHeight) / 2;
-
-  /* ===== STITCHES ===== */
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-
-      const group = document.createElementNS(svgNS, "g");
-      const path = document.createElementNS(svgNS, "path");
-
-      path.setAttribute("d", stitchPathData);
-      path.setAttribute("stroke", "#000");
-      path.setAttribute("fill", stitchColors[r][c]);
-      path.setAttribute("stroke-width", "0.5");
-
-      path.addEventListener("mousedown", () => {
-        isDrawing = true;
-        paint();
+      path.addEventListener("mousedown",()=>{
+        isDrawing=true; paint();
       });
-
-      path.addEventListener("mouseenter", () => {
-        if (isDrawing) paint();
+      path.addEventListener("mouseenter",()=>{
+        if(isDrawing) paint();
       });
-
-      function paint() {
-        stitchColors[r][c] = selectedColor;
-        path.setAttribute("fill", selectedColor);
+      function paint(){
+        stitchColors[r][c]=selectedColor;
+        path.setAttribute("fill",selectedColor);
       }
 
       group.appendChild(path);
       svg.appendChild(group);
 
-      const bbox = path.getBBox();
-      const cx = bbox.x + bbox.width / 2;
-      const cy = bbox.y + bbox.height / 2;
-
-      group.setAttribute(
-        "transform",
-        `translate(${offsetX + c * STITCH_SIZE}, ${offsetY + r * STITCH_SIZE * ROW_SPACING}) translate(${-cx}, ${-cy})`
+      const bbox=path.getBBox();
+      const cx=bbox.x+bbox.width/2;
+      const cy=bbox.y+bbox.height/2;
+      group.setAttribute("transform",
+        `translate(${offsetX + c*STITCH_SIZE}, ${offsetY + r*STITCH_SIZE*ROW_SPACING}) translate(${-cx}, ${-cy}) scale(1)`
       );
-
-      path.setAttribute("transform", `scale(${SCALE})`);
     }
   }
 
-  /* ===== LINE NUMBERS (OVERLAY) ===== */
-
-  // Row numbers
-  for (let r = 0; r < rows; r++) {
-    const div = document.createElement("div");
-    div.textContent = r + 1;
-
-    div.style.position = "absolute";
-    div.style.left = `${offsetX - 30}px`;
-    div.style.top = `${offsetY + r * STITCH_SIZE * ROW_SPACING + (STITCH_SIZE * ROW_SPACING) / 2}px`;
-    div.style.transform = "translateY(-50%)";
-
-    div.style.fontWeight = "bold";
-    div.style.color = "#000";
-    div.style.fontSize = "14px";
-    div.style.width = "20px";
-    div.style.textAlign = "right";
-
+  // LINE NUMBERS OVERLAY
+  for(let r=0;r<rows;r++){
+    const div=document.createElement("div");
+    div.textContent=r+1;
+    div.style.position="absolute";
+    div.style.left=`${offsetX-30}px`;
+    div.style.top=`${offsetY + r*STITCH_SIZE*ROW_SPACING + (STITCH_SIZE*ROW_SPACING)/2}px`;
+    div.style.transform="translateY(-50%)";
+    div.style.fontWeight="bold";
+    div.style.color="#000";
+    div.style.fontSize="14px";
+    div.style.width="20px";
+    div.style.textAlign="right";
     overlay.appendChild(div);
   }
-
-  // Column numbers
-  for (let c = 0; c < cols; c++) {
-    const div = document.createElement("div");
-    div.textContent = c + 1;
-
-    div.style.position = "absolute";
-    div.style.left = `${offsetX + c * STITCH_SIZE + STITCH_SIZE / 2}px`;
-    div.style.top = `${offsetY + (rows - 1) * STITCH_SIZE * ROW_SPACING + 30}px`;
-    div.style.transform = "translateX(-50%)";
-
-    div.style.fontWeight = "bold";
-    div.style.color = "#000";
-    div.style.fontSize = "14px";
-    div.style.textAlign = "center";
-
+  for(let c=0;c<cols;c++){
+    const div=document.createElement("div");
+    div.textContent=c+1;
+    div.style.position="absolute";
+    div.style.left=`${offsetX + c*STITCH_SIZE + STITCH_SIZE/2}px`;
+    div.style.top=`${offsetY + rows*STITCH_SIZE*ROW_SPACING + 5}px`;
+    div.style.transform="translateX(-50%)";
+    div.style.fontWeight="bold";
+    div.style.color="#000";
+    div.style.fontSize="14px";
+    div.style.textAlign="center";
     overlay.appendChild(div);
   }
 }
 
-/* ===== ZOOM ===== */
-zoomSlider.addEventListener("input", (e) => {
-  zoomLevel = parseFloat(e.target.value);
-  applyZoom();
-});
+/* EVENTS */
+window.addEventListener("mouseup",()=>{isDrawing=false;});
 
-window.addEventListener("wheel", (e) => {
-  if (!e.ctrlKey) return;
-
-  e.preventDefault();
-
-  const delta = -e.deltaY * 0.001;
-  zoomLevel += delta;
-
-  zoomLevel = Math.min(2, Math.max(0.5, zoomLevel));
-
-  zoomSlider.value = zoomLevel;
-  applyZoom();
-});
-
-function applyZoom() {
-  svg.style.transformOrigin = "top left";
-  svg.style.transform = `scale(${zoomLevel})`;
-}
-
-/* ===== EVENTS ===== */
-window.addEventListener("mouseup", () => {
-  isDrawing = false;
-});
-
-document.getElementById("applyGrid").onclick = () => {
-  const r = parseInt(document.getElementById("rowsInput").value);
-  const c = parseInt(document.getElementById("colsInput").value);
-  initGrid(r, c);
+document.getElementById("applyGrid").onclick=()=>{
+  const r=parseInt(document.getElementById("rowsInput").value);
+  const c=parseInt(document.getElementById("colsInput").value);
+  initGrid(r,c);
   renderGrid();
 };
 
-document.getElementById("colorPicker").oninput = (e) => {
-  selectedColor = e.target.value;
-};
+document.getElementById("colorPicker").oninput=(e)=>{selectedColor=e.target.value;}
 
-/* ===== INIT ===== */
+/* ZOOM */
+zoomSlider.addEventListener("input",(e)=>{
+  zoomLevel=parseFloat(e.target.value);
+  applyZoom();
+});
+
+window.addEventListener("wheel",(e)=>{
+  if(!e.ctrlKey) return;
+  e.preventDefault();
+  const delta=-e.deltaY*0.001;
+  zoomLevel+=delta;
+  zoomLevel=Math.min(2,Math.max(1,zoomLevel));
+  zoomSlider.value=zoomLevel;
+  applyZoom();
+});
+
+function applyZoom(){
+  svg.style.transformOrigin="top left";
+  svg.style.transform=`scale(${zoomLevel})`;
+  overlay.style.transform=`scale(${zoomLevel})`;
+}
+
+/* INIT */
 renderPalette();
-initGrid(rows, cols);
+initGrid(rows,cols);
 renderGrid();
 applyZoom();
