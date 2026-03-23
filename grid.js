@@ -7,7 +7,40 @@ const ROW_SPACING = 0.79;
 const SCALE = 4;
 
 /* ===== STITCH PATH ===== */
-const stitchPathData = `...`; // keep the same stitchPathData as before
+const stitchPathData = `
+m 0,0
+c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
+-0.21376,-1.60508 -0.82301,-3.15569 -1.71114,-4.50377
+-0.83955,-1.20233 -1.8919,0.15882 -2.47536,0.86493
+-0.75126,0.76503 -1.39814,1.63108 -2.0184,2.506
+-1.09808,1.67485 -2.19951,3.34692 -3.40046,4.94991
+-0.46098,0.96625 -1.19549,1.81042 -1.24952,2.91779
+-0.33647,1.91326 -0.25331,3.86606 -0.51202,5.7905
+-0.14293,2.12408 -0.18126,4.25548 0.007,6.37822
+-0.084,1.46207 0.009,2.94939 0.57817,4.31714
+0.52977,0.82075 1.22534,-1.23227 1.77945,-1.62912
+1.41695,-1.79237 2.33146,-3.93561 3.87033,-5.63961
+0.80261,-0.8534 1.56054,-1.79847 2.48679,-2.50545
+C -1.70964,6.6598 -1.02979,5.2123 -0.78582,3.66371
+-0.50364,2.44765 -0.16887,1.23842 0,0
+Z
+m -23.25957,0
+c -0.0161,-1.85405 -0.0151,-3.71528 0.0417,-5.56693
+0.21375,-1.60508 0.82301,-3.15569 1.71114,-4.50377
+0.83955,-1.20233 1.8919,0.15882 2.47539,0.86493
+0.75123,0.76503 1.39811,1.63108 2.01837,2.506
+1.09807,1.67485 2.19951,3.34692 3.40045,4.94991
+0.46098,0.96625 1.19549,1.81042 1.24952,2.91779
+0.33647,1.91326 0.25331,3.86606 0.51202,5.7905
+0.14291,2.12408 0.18124,4.25548 -0.007,6.37822
+0.0839,1.46207 -0.009,2.94939 -0.57817,4.31714
+-0.52975,0.82075 -1.22531,-1.23227 -1.77945,-1.62912
+-1.41695,-1.79237 -2.33146,-3.93561 -3.87033,-5.63961
+-0.80259,-0.8534 -1.56054,-1.79847 -2.48676,-2.50545
+C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
+-22.75604,2.44765 -23.09081,1.23842 -23.25988,0
+Z
+`;
 
 let rows = 6;
 let cols = 10;
@@ -15,12 +48,12 @@ let selectedColor = "#ff0000";
 let stitchColors = [];
 let isDrawing = false;
 
-/* ===== LINE NUMBER SETTINGS ===== */
-let showLineNumbers = false;
-let knitType = "flat";
-
 /* ===== COLOR PALETTE ===== */
-const defaultColors = ["#ffffff","#000000","#ff0000","#0000ff","#00aa00","#ffff00","#ff00ff","#00ffff","#888888"];
+const defaultColors = [
+  "#ffffff","#000000","#ff0000","#0000ff",
+  "#00aa00","#ffff00","#ff00ff","#00ffff","#888888"
+];
+
 let paletteColors = [...defaultColors];
 const paletteDiv = document.getElementById("palette");
 
@@ -65,18 +98,6 @@ function renderGrid() {
   const offsetY = (canvasHeight - gridHeight) / 2;
 
   for (let r = 0; r < rows; r++) {
-    // Add row number
-    if (showLineNumbers) {
-      const text = document.createElementNS(svgNS, "text");
-      text.textContent = r + 1;
-      text.classList.add("line-number");
-      text.setAttribute("x", offsetX - 20);
-      text.setAttribute("y", offsetY + r * STITCH_SIZE * ROW_SPACING + STITCH_SIZE/2);
-      text.setAttribute("dominant-baseline", "middle");
-      text.setAttribute("text-anchor", "end");
-      svg.appendChild(text);
-    }
-
     for (let c = 0; c < cols; c++) {
       const group = document.createElementNS(svgNS, "g");
       const path = document.createElementNS(svgNS, "path");
@@ -91,39 +112,28 @@ function renderGrid() {
         path.setAttribute("fill", selectedColor);
       }
 
-      path.addEventListener("mousedown", (e) => { isDrawing = true; paint(); e.preventDefault(); });
-      path.addEventListener("mouseenter", () => { if (isDrawing) paint(); });
+      path.addEventListener("mousedown", (e) => {
+        isDrawing = true;
+        paint();
+        e.preventDefault();
+      });
+
+      path.addEventListener("mouseenter", () => {
+        if (isDrawing) paint();
+      });
 
       group.appendChild(path);
       svg.appendChild(group);
 
-      // Column flip logic for flat vs round
-      let colIndex = c;
-      if (knitType === "flat" && r % 2 === 1) colIndex = cols - 1 - c;
-
       const bbox = path.getBBox();
-      const cx = bbox.x + bbox.width/2;
-      const cy = bbox.y + bbox.height/2;
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
 
       group.setAttribute(
         "transform",
-        `translate(${offsetX + colIndex*STITCH_SIZE}, ${offsetY + r*STITCH_SIZE*ROW_SPACING}) translate(${-cx},${-cy})`
+        `translate(${offsetX + c * STITCH_SIZE}, ${offsetY + r * STITCH_SIZE * ROW_SPACING}) translate(${-cx}, ${-cy})`
       );
       path.setAttribute("transform", `scale(${SCALE})`);
-    }
-  }
-
-  // Column numbers
-  if (showLineNumbers) {
-    for (let c = 0; c < cols; c++) {
-      const text = document.createElementNS(svgNS, "text");
-      text.textContent = c + 1;
-      text.classList.add("line-number");
-      text.setAttribute("x", offsetX + c * STITCH_SIZE + STITCH_SIZE/2);
-      text.setAttribute("y", offsetY - 10);
-      text.setAttribute("dominant-baseline", "middle");
-      text.setAttribute("text-anchor", "middle");
-      svg.appendChild(text);
     }
   }
 }
@@ -162,25 +172,16 @@ window.addEventListener("mouseup", () => { isPanning = false; });
 viewport.addEventListener("contextmenu", (e) => e.preventDefault());
 
 function applyTransform() {
-  svg.style.transform = `scale(1) translate(0px, 0px)`;
+  svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
 }
 
 /* ===== UI EVENTS ===== */
 document.getElementById("colorPicker").addEventListener("input", (e) => { selectedColor = e.target.value; });
+
 document.getElementById("applyGrid").addEventListener("click", () => {
   const r = parseInt(document.getElementById("rowsInput").value);
   const c = parseInt(document.getElementById("colsInput").value);
-  initGrid(r,c);
-  renderGrid();
-});
-
-document.getElementById("lineNumberToggle").addEventListener("change", (e) => {
-  showLineNumbers = e.target.value === "on";
-  renderGrid();
-});
-
-document.getElementById("knitTypeSelect").addEventListener("change", (e) => {
-  knitType = e.target.value;
+  initGrid(r, c);
   renderGrid();
 });
 
