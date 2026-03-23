@@ -153,8 +153,25 @@ function createStitchGroup(r, c) {
   left.setAttribute("d", LEFT_PATH)
   right.setAttribute("d", RIGHT_PATH)
 
-  left.setAttribute("fill", grid[r][c])
-  right.setAttribute("fill", grid[r][c])
+const fillColor = grid[r][c]
+const isUncolored = fillColor === "#ffffff"
+
+left.setAttribute("fill", fillColor)
+right.setAttribute("fill", fillColor)
+
+// Add outline
+left.setAttribute("stroke", "#000")
+right.setAttribute("stroke", "#000")
+
+// Thin outline for visibility
+left.setAttribute("stroke-width", "0.3")
+right.setAttribute("stroke-width", "0.3")
+
+// Optional: make outlines slightly stronger for uncolored stitches
+if (isUncolored) {
+  left.setAttribute("stroke-width", "0.6")
+  right.setAttribute("stroke-width", "0.6")
+}
 
   group.appendChild(left)
   group.appendChild(right)
