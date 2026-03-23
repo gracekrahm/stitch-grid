@@ -51,14 +51,14 @@
 const rows = 20
 const cols = 20
 
-// Derived from your Inkscape measurements
-const STITCH_WIDTH = 44.5
-const STITCH_HEIGHT = 71
+// Grid spacing (independent of original SVG coordinates)
+const STITCH_WIDTH = 50
+const STITCH_HEIGHT = 80
 
 const colors = ["#ffffff", "#d62828", "#1d3557", "#2a9d8f", "#f4a261"]
 let currentColor = colors[1]
 
-// grid data
+// Grid state
 let grid = Array.from({length: rows}, () => Array(cols).fill(colors[0]))
 
 const svg = document.getElementById("chart")
@@ -81,7 +81,7 @@ colors.forEach(color => {
   toolbar.appendChild(btn)
 })
 
-// ---------- LEFT LEG PATH (YOUR SVG) ----------
+// ---------- ORIGINAL LEFT LEG PATH (UNCHANGED) ----------
 const LEFT_PATH = `
 M 937.63749,54.408191
 C -0.0611,-7.00744 -0.0567,-14.04199 0.15778,-21.04035
@@ -98,20 +98,26 @@ C -0.0611,-7.00744 -0.0567,-14.04199 0.15778,-21.04035
 -3.03344,-3.22546 -5.89808,-6.79739 -9.39885,-9.46943
 -3.6938,-4.61031 -6.26331,-10.081156 -7.1854,-15.934086
 -1.06654,-4.59616 -2.33185,-9.16648 -2.97085,-13.84711
-z
+Z
 `
 
-// ---------- STITCH CREATION ----------
+// ---------- NORMALIZATION OFFSETS ----------
+// These come from the original SVG transform + path anchor
+const OFFSET_X = 937.06458
+const OFFSET_Y = 14.039495
+
+// ---------- CREATE STITCH ----------
 function createStitchGroup(r, c) {
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
 
-  // Place stitch in grid using derived spacing
   const x = c * STITCH_WIDTH
-  const y = r * STITCH_HEIGHT * 0.95  // slight vertical tightening
+  const y = r * STITCH_HEIGHT
 
-  group.setAttribute("transform", `translate(${x}, ${y})`)
-  group.dataset.row = r
-  group.dataset.col = c
+  // Normalize + position
+  group.setAttribute(
+    "transform",
+    `translate(${x}, ${y}) translate(${-OFFSET_X}, ${-OFFSET_Y})`
+  )
 
   const fillColor = grid[r][c]
   const isUncolored = fillColor === "#ffffff"
@@ -123,18 +129,19 @@ function createStitchGroup(r, c) {
   left.setAttribute("stroke", "#000")
   left.setAttribute("stroke-width", isUncolored ? "0.6" : "0.3")
 
-  // RIGHT LEG (mirror)
+  // RIGHT LEG (mirrored)
   const right = document.createElementNS("http://www.w3.org/2000/svg", "path")
   right.setAttribute("d", LEFT_PATH)
+  right.setAttribute("transform", "scale(-1,1)")
   right.setAttribute("fill", fillColor)
   right.setAttribute("stroke", "#000")
   right.setAttribute("stroke-width", isUncolored ? "0.6" : "0.3")
 
-  // Mirror around vertical axis of the stitch
-  right.setAttribute("transform", "scale(-1,1)")
-
   group.appendChild(left)
   group.appendChild(right)
+
+  group.dataset.row = r
+  group.dataset.col = c
 
   return group
 }
@@ -146,7 +153,7 @@ for (let r = 0; r < rows; r++) {
   }
 }
 
-// ---------- CLICK HANDLING ----------
+// ---------- INTERACTION ----------
 svg.addEventListener("click", (e) => {
   const group = e.target.closest("g")
   if (!group) return
@@ -163,7 +170,6 @@ svg.addEventListener("click", (e) => {
   })
 })
 
-// ---------- DRAG PAINT ----------
 let isMouseDown = false
 
 svg.addEventListener("mousedown", () => isMouseDown = true)
