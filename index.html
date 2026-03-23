@@ -1,183 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Knit Chart Editor</title>
-
-<style>
-  body {
-    font-family: sans-serif;
-    background: #f5f5f5;
-    text-align: center;
-  }
-
-  h1 { margin-top: 20px; }
-
-  #toolbar { margin: 15px; }
-
-  .color-btn {
-    width: 30px;
-    height: 30px;
-    border: 2px solid #333;
-    margin: 3px;
-    cursor: pointer;
-    display: inline-block;
-  }
-
-  .selected { outline: 3px solid black; }
-
-  #chart {
-    background: white;
-    border: 1px solid #ccc;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Knit Stitch Tiling</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f5f5f5;
+    }
+    svg {
+      display: block;
+      margin: auto;
+      background: white;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>Knit Chart Editor</h1>
-
-<div id="toolbar"></div>
-<svg id="chart" width="600" height="600"></svg>
+<svg id="canvas" width="800" height="600"></svg>
 
 <script>
-const rows = 30
-const cols = 30
-const stitchSize = 18
+const svgNS = "http://www.w3.org/2000/svg";
 
-const colors = ["#ffffff", "#d62828", "#1d3557", "#2a9d8f", "#f4a261"]
-let currentColor = colors[1]
-
-let grid = Array.from({length: rows}, () => Array(cols).fill(colors[0]))
-
-const svg = document.getElementById("chart")
-const toolbar = document.getElementById("toolbar")
-
-// ---------- COLOR PALETTE ----------
-colors.forEach(color => {
-  const btn = document.createElement("div")
-  btn.className = "color-btn"
-  btn.style.background = color
-
-  if (color === currentColor) btn.classList.add("selected")
-
-  btn.onclick = () => {
-    currentColor = color
-    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("selected"))
-    btn.classList.add("selected")
-  }
-
-  toolbar.appendChild(btn)
-})
-
-// ---------- PATHS ----------
-const LEFT_PATH = `
-M 937.63749,54.408191
-C -0.0611,-7.00744 -0.0567,-14.04199 0.15778,-21.04035
-0.80793,-6.06647 3.11057,-11.92702 6.46727,-17.02215
-3.17311,-4.54422 7.15056,0.60029 9.3558,3.26902
-2.83935,2.89147 5.28426,6.16471 7.62854,9.47153
-4.15023,6.33013 8.31309,12.64977 12.85209,18.70832
-1.7423,3.65195 4.5184,6.84252 4.72255,11.02784
-1.27173,7.23124 0.9574,14.6119 1.9352,21.885366
-0.54015,8.02803 0.68507,16.08371 -0.0255,24.106673
-0.31733,5.52591 -0.0326,11.14729 -2.18517,16.31675
--2.00222,3.10203 -4.63111,-4.65743 -6.72548,-6.15733
--5.35541,-6.7743 -8.81179,-14.87473 -14.628,-21.315043
--3.03344,-3.22546 -5.89808,-6.79739 -9.39885,-9.46943
--3.6938,-4.61031 -6.26331,-10.081156 -7.1854,-15.934086
--1.06654,-4.59616 -2.33185,-9.16648 -2.97085,-13.84711
+const stitchPathData = `
+m 0,0
+c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
+-0.21376,-1.60508 -0.82301,-3.15569 -1.71114,-4.50377
+-0.83955,-1.20233 -1.8919,0.15882 -2.47536,0.86493
+-0.75126,0.76503 -1.39814,1.63108 -2.0184,2.506
+-1.09808,1.67485 -2.19951,3.34692 -3.40046,4.94991
+-0.46098,0.96625 -1.19549,1.81042 -1.24952,2.91779
+-0.33647,1.91326 -0.25331,3.86606 -0.51202,5.7905
+-0.14293,2.12408 -0.18126,4.25548 0.007,6.37822
+-0.084,1.46207 0.009,2.94939 0.57817,4.31714
+0.52977,0.82075 1.22534,-1.23227 1.77945,-1.62912
+1.41695,-1.79237 2.33146,-3.93561 3.87033,-5.63961
+0.80261,-0.8534 1.56054,-1.79847 2.48679,-2.50545
+C -1.70964,6.6598 -1.02979,5.2123 -0.78582,3.66371
+-0.50364,2.44765 -0.16887,1.23842 0,0
 Z
-`
-
-const RIGHT_PATH = `
-M 1025.5476,54.408191
-C 0.061,-7.00744 0.057,-14.04199 -0.1578,-21.04035
--0.8079,-6.06647 -3.1106,-11.92702 -6.4673,-17.02215
--3.1731,-4.54422 -7.1505,0.60029 -9.3557,3.26902
--2.8394,2.89147 -5.2843,6.16471 -7.6286,9.47153
--4.15022,6.33013 -8.31312,12.64977 -12.85212,18.70832
--1.7423,3.65195 -4.51837,6.84252 -4.72252,11.02784
--1.27173,7.23124 -0.9574,14.6119 -1.9352,21.885366
--0.54015,8.02803 -0.68507,16.08371 0.0255,24.106673
--0.31733,5.52591 0.0326,11.14729 2.18517,16.31675
-2.00225,3.10203 4.63115,-4.65743 6.72545,-6.15733
-5.3554,-6.7743 8.81182,-14.87473 14.62802,-21.315043
-3.0335,-3.22546 5.8981,-6.79739 9.3989,-9.46943
-3.6938,-4.61031 6.2633,-10.081156 7.1854,-15.934086
-1.0665,-4.59616 2.3318,-9.16648 2.9708,-13.84711
+m -23.25957,0
+c -0.0161,-1.85405 -0.0151,-3.71528 0.0417,-5.56693
+0.21375,-1.60508 0.82301,-3.15569 1.71114,-4.50377
+0.83955,-1.20233 1.8919,0.15882 2.47539,0.86493
+0.75123,0.76503 1.39811,1.63108 2.01837,2.506
+1.09807,1.67485 2.19951,3.34692 3.40045,4.94991
+0.46098,0.96625 1.19549,1.81042 1.24952,2.91779
+0.33647,1.91326 0.25331,3.86606 0.51202,5.7905
+0.14291,2.12408 0.18124,4.25548 -0.007,6.37822
+0.0839,1.46207 -0.009,2.94939 -0.57817,4.31714
+-0.52975,0.82075 -1.22531,-1.23227 -1.77945,-1.62912
+-1.41695,-1.79237 -2.33146,-3.93561 -3.87033,-5.63961
+-0.80259,-0.8534 -1.56054,-1.79847 -2.48676,-2.50545
+C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
+-22.75604,2.44765 -23.09081,1.23842 -23.25988,0
 Z
-`
+`;
 
-// ---------- NORMALIZE PATH GROUP ----------
-function createNormalizedStitchGroup(r, c) {
-  const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+const svg = document.getElementById("canvas");
 
-  const tempGroup = document.createElementNS("http://www.w3.org/2000/svg", "g")
+function createStitch(x, y, stitchSize, scale) {
+  const group = document.createElementNS(svgNS, "g");
 
-  const left = document.createElementNS("http://www.w3.org/2000/svg", "path")
-  const right = document.createElementNS("http://www.w3.org/2000/svg", "path")
+  const path = document.createElementNS(svgNS, "path");
+  path.setAttribute("d", stitchPathData);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "black");
 
-  left.setAttribute("d", LEFT_PATH)
-  right.setAttribute("d", RIGHT_PATH)
+  group.appendChild(path);
+  svg.appendChild(group);
 
-  tempGroup.appendChild(left)
-  tempGroup.appendChild(right)
+  // Compute bounding box AFTER attaching to DOM
+  const bbox = path.getBBox();
 
-  svg.appendChild(tempGroup)
-
-  // Compute bounding box
-  const bbox = tempGroup.getBBox()
-  const cx = bbox.x + bbox.width / 2
-  const cy = bbox.y + bbox.height / 2
-
-  // Remove temp from DOM
-  svg.removeChild(tempGroup)
-
-  const scale = stitchSize / Math.max(bbox.width, bbox.height)
-
-  const fillColor = grid[r][c]
-
-  const leftFinal = document.createElementNS("http://www.w3.org/2000/svg", "path")
-  const rightFinal = document.createElementNS("http://www.w3.org/2000/svg", "path")
-
-  leftFinal.setAttribute("d", LEFT_PATH)
-  rightFinal.setAttribute("d", RIGHT_PATH)
-
-  leftFinal.setAttribute("fill", fillColor)
-  rightFinal.setAttribute("fill", fillColor)
-
-  leftFinal.setAttribute("stroke", "#000")
-  rightFinal.setAttribute("stroke", "#000")
-
-  leftFinal.setAttribute("stroke-width", "0.3")
-  rightFinal.setAttribute("stroke-width", "0.3")
+  const cx = bbox.x + bbox.width / 2;
+  const cy = bbox.y + bbox.height / 2;
 
   group.setAttribute(
     "transform",
     `
-    translate(${c * stitchSize}, ${r * stitchSize * 0.9})
+    translate(${x}, ${y})
     scale(${scale})
     translate(${-cx}, ${-cy})
     `
-  )
-
-  group.dataset.row = r
-  group.dataset.col = c
-
-  group.appendChild(leftFinal)
-  group.appendChild(rightFinal)
-
-  return group
+  );
 }
 
-// ---------- BUILD GRID ----------
+// Grid settings
+const rows = 5;
+const cols = 8;
+const stitchSize = 60;
+const scale = 2;
+
 for (let r = 0; r < rows; r++) {
   for (let c = 0; c < cols; c++) {
-    svg.appendChild(createNormalizedStitchGroup(r, c))
+    createStitch(
+      c * stitchSize,
+      r * stitchSize * 0.9,
+      stitchSize,
+      scale
+    );
   }
 }
-
 </script>
 
 </body>
