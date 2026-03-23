@@ -1,3 +1,8 @@
+let showLineNumbers = false;
+document.getElementById("lineNumberToggle").addEventListener("change", (e) => {
+  showLineNumbers = e.target.value === "on";
+  renderGrid();
+});
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
 
