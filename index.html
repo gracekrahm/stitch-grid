@@ -1,25 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Knit Stitch Grid (Locked)</title>
+  <meta charset="UTF-8" />
+  <title>Knit Stitch Grid (Locked)</title>
 
-<style>
-  body {
-    margin: 0;
-    background: #f5f5f5;
-    font-family: sans-serif;
-  }
+  <style>
+    body {
+      margin: 0;
+      background: #f5f5f5;
+      font-family: sans-serif;
+    }
 
-  svg {
-    display: block;
-    margin: auto;
-    background: white;
-  }
-</style>
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 10;
+      width: 220px;
+    }
+
+    label {
+      font-size: 12px;
+      display: block;
+      margin-top: 8px;
+    }
+
+    input {
+      width: 100%;
+    }
+
+    svg {
+      display: block;
+      margin: auto;
+      background: white;
+    }
+  </style>
 </head>
 
 <body>
+
+<div id="controls">
+  <label>Fill Color:</label>
+  <input type="color" id="color" value="#ff0000">
+</div>
 
 <svg id="canvas" width="900" height="700" viewBox="0 0 900 700"></svg>
 
@@ -66,12 +93,12 @@ Z
 function renderGrid() {
   svg.innerHTML = "";
 
-  /* ===== LOCKED VALUES (your optimal sliders) ===== */
+  /* ===== LOCKED VALUES ===== */
   const stitchSize = 97;
   const rowSpacing = 0.79;
   const scale = 4;
 
-  const color = "#000000"; // keep stroke black (fixed)
+  const color = document.getElementById("color").value;
 
   const rows = 6;
   const cols = 10;
@@ -79,10 +106,10 @@ function renderGrid() {
   const canvasWidth = 900;
   const canvasHeight = 700;
 
+  // Same math as your original code
   const gridWidth = (cols - 1) * stitchSize;
   const gridHeight = (rows - 1) * stitchSize * rowSpacing;
 
-  // SAME centering logic as your original code
   const offsetX = (canvasWidth - gridWidth) / 2;
   const offsetY = (canvasHeight - gridHeight) / 2;
 
@@ -94,11 +121,11 @@ function renderGrid() {
       const path = document.createElementNS(svgNS, "path");
       path.setAttribute("d", stitchPathData);
 
-      // KEEP outline black
-      path.setAttribute("stroke", color);
+      // Stroke stays black
+      path.setAttribute("stroke", "#000000");
 
-      // No fill (same as your original behavior)
-      path.setAttribute("fill", "none");
+      // Fill now uses selected color
+      path.setAttribute("fill", color);
 
       group.appendChild(path);
       svg.appendChild(group);
@@ -116,13 +143,15 @@ function renderGrid() {
         `
       );
 
-      // Apply the SAME scale as before (now fixed at 4)
       path.setAttribute("transform", `scale(${scale})`);
     }
   }
 }
 
-/* Initial render only */
+/* Re-render when color changes */
+document.getElementById("color").addEventListener("input", renderGrid);
+
+/* Initial render */
 renderGrid();
 </script>
 
