@@ -140,18 +140,20 @@ function renderGrid() {
 
       const cx = bbox.x + bbox.width / 2;
       const cy = bbox.y + bbox.height / 2;
-
       group.setAttribute(
         "transform",
         `
         translate(${offsetX + c * stitchSize}, ${offsetY + r * stitchSize * rowSpacing})
-        scale(${scale})
         translate(${-cx}, ${-cy})
         `
       );
+      
+      path.setAttribute("transform", `scale(${scale})`);
+      
     }
   }
 }
+
 
 /* Hook up controls */
 document.querySelectorAll("input").forEach(input => {
