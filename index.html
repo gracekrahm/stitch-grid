@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Knit Stitch Grid Controls</title>
+  <title>Knit Stitch Grid (Centered)</title>
   <style>
     body {
       margin: 0;
@@ -55,13 +55,13 @@
   <input type="color" id="color" value="#000000">
 </div>
 
-<svg id="canvas" width="900" height="700"></svg>
+<svg id="canvas" width="900" height="700" viewBox="0 0 900 700"></svg>
 
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
 
-/* ===== YOUR STITCH PATH ===== */
+/* ===== STITCH PATH ===== */
 const stitchPathData = `
 m 0,0
 c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
@@ -97,8 +97,6 @@ C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
 Z
 `;
 
-let stitches = [];
-
 function renderGrid() {
   svg.innerHTML = "";
 
@@ -114,8 +112,20 @@ function renderGrid() {
   const rows = 6;
   const cols = 10;
 
+  const canvasWidth = 900;
+  const canvasHeight = 700;
+
+  // Compute grid dimensions
+  const gridWidth = (cols - 1) * stitchSize;
+  const gridHeight = (rows - 1) * stitchSize * rowSpacing;
+
+  // Center the grid
+  const offsetX = (canvasWidth - gridWidth) / 2;
+  const offsetY = (canvasHeight - gridHeight) / 2;
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
+
       const group = document.createElementNS(svgNS, "g");
 
       const path = document.createElementNS(svgNS, "path");
@@ -134,7 +144,7 @@ function renderGrid() {
       group.setAttribute(
         "transform",
         `
-        translate(${c * stitchSize}, ${r * stitchSize * rowSpacing})
+        translate(${offsetX + c * stitchSize}, ${offsetY + r * stitchSize * rowSpacing})
         scale(${scale})
         translate(${-cx}, ${-cy})
         `
@@ -143,7 +153,7 @@ function renderGrid() {
   }
 }
 
-/* Hook up sliders */
+/* Hook up controls */
 document.querySelectorAll("input").forEach(input => {
   input.addEventListener("input", renderGrid);
 });
