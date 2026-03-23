@@ -40,6 +40,20 @@
     cursor: pointer;
   }
 
+  #palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+  }
+
   svg {
     display: block;
     margin: auto;
@@ -57,8 +71,13 @@
   <label>Stitches (Columns)</label>
   <input type="number" id="colsInput" value="10" min="1" />
 
-  <label>Stitch Color</label>
+  <label>Quick Colors</label>
+  <div id="palette"></div>
+
+  <label>Stitch Color (Color Wheel)</label>
   <input type="color" id="colorPicker" value="#ff0000" />
+
+  <button id="saveColor">Save Color to Palette</button>
 
   <button id="applyGrid">Apply Grid</button>
 </div>
@@ -114,9 +133,52 @@ Z
 let rows = 6;
 let cols = 10;
 let selectedColor = "#ff0000";
-
-/* 2D color grid */
 let stitchColors = [];
+
+/* ===== COLOR PALETTE ===== */
+const defaultColors = [
+  "#ffffff",
+  "#000000",
+  "#ff0000",
+  "#0000ff",
+  "#00aa00",
+  "#ffff00",
+  "#ff00ff",
+  "#00ffff",
+  "#888888"
+];
+
+let paletteColors = [...defaultColors];
+
+const paletteDiv = document.getElementById("palette");
+
+function renderPalette() {
+  paletteDiv.innerHTML = "";
+
+  paletteColors.forEach(color => {
+    const swatch = document.createElement("div");
+    swatch.className = "swatch";
+    swatch.style.background = color;
+
+    swatch.addEventListener("click", () => {
+      selectedColor = color;
+      document.getElementById("colorPicker").value = color;
+    });
+
+    paletteDiv.appendChild(swatch);
+  });
+}
+
+document.getElementById("saveColor").addEventListener("click", () => {
+  const color = document.getElementById("colorPicker").value;
+
+  if (!paletteColors.includes(color)) {
+    paletteColors.push(color);
+    renderPalette();
+  }
+
+  selectedColor = color;
+});
 
 /* ===== INIT GRID ===== */
 function initGrid(r, c) {
@@ -151,10 +213,8 @@ function renderGrid() {
       path.setAttribute("stroke", "#000");
       path.setAttribute("fill", stitchColors[r][c]);
       path.setAttribute("stroke-width", "0.5");
-
       path.style.cursor = "pointer";
 
-      // Click to paint stitch
       path.addEventListener("click", () => {
         stitchColors[r][c] = selectedColor;
         path.setAttribute("fill", selectedColor);
@@ -194,6 +254,7 @@ document.getElementById("applyGrid").addEventListener("click", () => {
 });
 
 /* ===== INITIAL LOAD ===== */
+renderPalette();
 initGrid(rows, cols);
 renderGrid();
 
