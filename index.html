@@ -1,51 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Knit Stitch Grid (Locked)</title>
+<meta charset="UTF-8" />
+<title>Knit Chart Editor</title>
 
-  <style>
-    body {
-      margin: 0;
-      background: #f5f5f5;
-      font-family: sans-serif;
-    }
+<style>
+  body {
+    margin: 0;
+    background: #f5f5f5;
+    font-family: sans-serif;
+  }
 
-    #controls {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 10;
-      width: 220px;
-    }
+  #controls {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+    width: 240px;
+  }
 
-    label {
-      font-size: 12px;
-      display: block;
-      margin-top: 8px;
-    }
+  label {
+    font-size: 12px;
+    display: block;
+    margin-top: 8px;
+  }
 
-    input {
-      width: 100%;
-    }
+  input {
+    width: 100%;
+  }
 
-    svg {
-      display: block;
-      margin: auto;
-      background: white;
-    }
-  </style>
+  button {
+    margin-top: 10px;
+    width: 100%;
+    padding: 6px;
+    cursor: pointer;
+  }
+
+  svg {
+    display: block;
+    margin: auto;
+    background: white;
+  }
+</style>
 </head>
 
 <body>
 
 <div id="controls">
-  <label>Fill Color:</label>
-  <input type="color" id="color" value="#ff0000">
+  <label>Rows</label>
+  <input type="number" id="rowsInput" value="6" min="1" />
+
+  <label>Stitches (Columns)</label>
+  <input type="number" id="colsInput" value="10" min="1" />
+
+  <label>Stitch Color</label>
+  <input type="color" id="colorPicker" value="#ff0000" />
+
+  <button id="applyGrid">Apply Grid</button>
 </div>
 
 <svg id="canvas" width="900" height="700" viewBox="0 0 900 700"></svg>
@@ -53,6 +68,11 @@
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
+
+/* ===== FIXED GAUGE SETTINGS ===== */
+const STITCH_SIZE = 97;
+const ROW_SPACING = 0.79;
+const SCALE = 4;
 
 /* ===== STITCH PATH ===== */
 const stitchPathData = `
@@ -90,25 +110,33 @@ C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
 Z
 `;
 
+/* ===== STATE ===== */
+let rows = 6;
+let cols = 10;
+let selectedColor = "#ff0000";
+
+/* 2D color grid */
+let stitchColors = [];
+
+/* ===== INIT GRID ===== */
+function initGrid(r, c) {
+  rows = r;
+  cols = c;
+
+  stitchColors = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => "#ffffff")
+  );
+}
+
+/* ===== RENDER ===== */
 function renderGrid() {
   svg.innerHTML = "";
-
-  /* ===== LOCKED VALUES ===== */
-  const stitchSize = 97;
-  const rowSpacing = 0.79;
-  const scale = 4;
-
-  const color = document.getElementById("color").value;
-
-  const rows = 6;
-  const cols = 10;
 
   const canvasWidth = 900;
   const canvasHeight = 700;
 
-  // Same math as your original code
-  const gridWidth = (cols - 1) * stitchSize;
-  const gridHeight = (rows - 1) * stitchSize * rowSpacing;
+  const gridWidth = (cols - 1) * STITCH_SIZE;
+  const gridHeight = (rows - 1) * STITCH_SIZE * ROW_SPACING;
 
   const offsetX = (canvasWidth - gridWidth) / 2;
   const offsetY = (canvasHeight - gridHeight) / 2;
@@ -120,39 +148,55 @@ function renderGrid() {
 
       const path = document.createElementNS(svgNS, "path");
       path.setAttribute("d", stitchPathData);
+      path.setAttribute("stroke", "#000");
+      path.setAttribute("fill", stitchColors[r][c]);
+      path.setAttribute("stroke-width", "0.5");
 
-      // Stroke stays black
-      path.setAttribute("stroke", "#000000");
+      path.style.cursor = "pointer";
 
-      // Fill now uses selected color
-      path.setAttribute("fill", color);
+      // Click to paint stitch
+      path.addEventListener("click", () => {
+        stitchColors[r][c] = selectedColor;
+        path.setAttribute("fill", selectedColor);
+      });
 
       group.appendChild(path);
       svg.appendChild(group);
 
       const bbox = path.getBBox();
-
       const cx = bbox.x + bbox.width / 2;
       const cy = bbox.y + bbox.height / 2;
 
       group.setAttribute(
         "transform",
         `
-        translate(${offsetX + c * stitchSize}, ${offsetY + r * stitchSize * rowSpacing})
+        translate(${offsetX + c * STITCH_SIZE}, ${offsetY + r * STITCH_SIZE * ROW_SPACING})
         translate(${-cx}, ${-cy})
         `
       );
 
-      path.setAttribute("transform", `scale(${scale})`);
+      path.setAttribute("transform", `scale(${SCALE})`);
     }
   }
 }
 
-/* Re-render when color changes */
-document.getElementById("color").addEventListener("input", renderGrid);
+/* ===== UI EVENTS ===== */
+document.getElementById("colorPicker").addEventListener("input", (e) => {
+  selectedColor = e.target.value;
+});
 
-/* Initial render */
+document.getElementById("applyGrid").addEventListener("click", () => {
+  const r = parseInt(document.getElementById("rowsInput").value);
+  const c = parseInt(document.getElementById("colsInput").value);
+
+  initGrid(r, c);
+  renderGrid();
+});
+
+/* ===== INITIAL LOAD ===== */
+initGrid(rows, cols);
 renderGrid();
+
 </script>
 
 </body>
