@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Knit Stitch Grid (Fixed Layout)</title>
+<title>Knit Stitch Grid (Fixed + Centered)</title>
 
 <style>
   body {
@@ -27,10 +27,13 @@
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
 
-/* ===== LOCKED VALUES (from your sliders) ===== */
+/* ===== LOCKED SETTINGS (your optimal values) ===== */
 const STITCH_SIZE = 97;
 const ROW_SPACING = 0.79;
 const SCALE = 4;
+
+/* Change this to control fill color */
+const FILL_COLOR = "#ff0000";
 
 /* ===== STITCH PATH ===== */
 const stitchPathData = `
@@ -81,11 +84,15 @@ function renderGrid() {
   const gridWidth = (cols - 1) * STITCH_SIZE;
   const gridHeight = (rows - 1) * STITCH_SIZE * ROW_SPACING;
 
-  const offsetX = (canvasWidth - gridWidth) / 2;
-  const offsetY = (canvasHeight - gridHeight) / 2;
+  // IMPORTANT: account for scaling when centering
+  const scaledWidth = gridWidth * SCALE;
+  const scaledHeight = gridHeight * SCALE;
 
-  // Root group (scaled like your original "scale = 4")
+  const offsetX = (canvasWidth - scaledWidth) / 2;
+  const offsetY = (canvasHeight - scaledHeight) / 2;
+
   const rootGroup = document.createElementNS(svgNS, "g");
+
   rootGroup.setAttribute(
     "transform",
     `translate(${offsetX}, ${offsetY}) scale(${SCALE})`
@@ -101,11 +108,11 @@ function renderGrid() {
       const path = document.createElementNS(svgNS, "path");
       path.setAttribute("d", stitchPathData);
 
-      // Outline stays black
+      // Keep outline black
       path.setAttribute("stroke", "black");
 
-      // Fill color (you can change this constant if desired)
-      path.setAttribute("fill", "#ff0000");
+      // Fill controlled here
+      path.setAttribute("fill", FILL_COLOR);
 
       group.appendChild(path);
 
