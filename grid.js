@@ -1,10 +1,12 @@
-let showLineNumbers = false;
-document.getElementById("lineNumberToggle").addEventListener("change", (e) => {
-  showLineNumbers = e.target.value === "on";
-  renderGrid();
-});
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
+
+let rows = 6;
+let cols = 10;
+let selectedColor = "#ff0000";
+let stitchColors = [];
+let isDrawing = false;
+let showLineNumbers = false;
 
 /* ===== FIXED GAUGE SETTINGS ===== */
 const STITCH_SIZE = 97;
@@ -47,12 +49,6 @@ C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
 Z
 `;
 
-let rows = 6;
-let cols = 10;
-let selectedColor = "#ff0000";
-let stitchColors = [];
-let isDrawing = false;
-
 /* ===== COLOR PALETTE ===== */
 const defaultColors = [
   "#ffffff","#000000","#ff0000","#0000ff",
@@ -89,7 +85,9 @@ document.getElementById("saveColor").addEventListener("click", () => {
 function initGrid(r, c) {
   rows = r;
   cols = c;
-  stitchColors = Array.from({ length: rows }, () => Array.from({ length: cols }, () => "#ffffff"));
+  stitchColors = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => "#ffffff")
+  );
 }
 
 /* ===== RENDER GRID ===== */
@@ -102,6 +100,7 @@ function renderGrid() {
   const offsetX = (canvasWidth - gridWidth) / 2;
   const offsetY = (canvasHeight - gridHeight) / 2;
 
+  // Draw stitches
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const group = document.createElementNS(svgNS, "g");
@@ -116,51 +115,12 @@ function renderGrid() {
         stitchColors[r][c] = selectedColor;
         path.setAttribute("fill", selectedColor);
       }
-      if (showLineNumbers) {
-  for (let r = 0; r < rows; r++) {
-    const text = document.createElementNS(svgNS, "text");
-
-    text.textContent = r + 1;
-    text.setAttribute("x", offsetX - 20);
-    text.setAttribute("y", offsetY + r * STITCH_SIZE * ROW_SPACING + STITCH_SIZE / 2);
-    text.setAttribute("dominant-baseline", "middle");
-    text.setAttribute("text-anchor", "end");
-
-    text.classList.add("line-number");
-
-    svg.appendChild(text);
-  }
-}
-if (showLineNumbers) {
-  for (let c = 0; c < cols; c++) {
-    const text = document.createElementNS(svgNS, "text");
-
-    text.textContent = c + 1;
-
-    text.setAttribute("x", offsetX + c * STITCH_SIZE);
-
-    text.setAttribute(
-      "y",
-      offsetY + (rows - 1) * STITCH_SIZE * ROW_SPACING + 25
-    );
-
-    text.setAttribute("text-anchor", "middle");
-    text.setAttribute("dominant-baseline", "middle");
-
-    text.setAttribute("fill", "#000");
-    text.setAttribute("font-weight", "bold");
-    text.setAttribute("font-size", "14px");
-
-    svg.appendChild(text);
-  }
-}
 
       path.addEventListener("mousedown", (e) => {
         isDrawing = true;
         paint();
         e.preventDefault();
       });
-
       path.addEventListener("mouseenter", () => {
         if (isDrawing) paint();
       });
@@ -179,8 +139,49 @@ if (showLineNumbers) {
       path.setAttribute("transform", `scale(${SCALE})`);
     }
   }
+
+  // Draw line numbers after stitches
+  if (showLineNumbers) {
+    // Row numbers (left)
+    for (let r = 0; r < rows; r++) {
+      const text = document.createElementNS(svgNS, "text");
+      text.textContent = r + 1;
+      text.setAttribute("x", offsetX - 20);
+      text.setAttribute(
+        "y",
+        offsetY + r * STITCH_SIZE * ROW_SPACING + (STITCH_SIZE * ROW_SPACING) / 2
+      );
+      text.setAttribute("text-anchor", "end");
+      text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("fill", "#000");
+      text.setAttribute("font-weight", "bold");
+      text.setAttribute("font-size", "14px");
+      svg.appendChild(text);
+    }
+
+    // Column numbers (bottom)
+    for (let c = 0; c < cols; c++) {
+      const text = document.createElementNS(svgNS, "text");
+      text.textContent = c + 1;
+      text.setAttribute(
+        "x",
+        offsetX + c * STITCH_SIZE + STITCH_SIZE / 2
+      );
+      text.setAttribute(
+        "y",
+        offsetY + (rows - 1) * STITCH_SIZE * ROW_SPACING + 25
+      );
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("fill", "#000");
+      text.setAttribute("font-weight", "bold");
+      text.setAttribute("font-size", "14px");
+      svg.appendChild(text);
+    }
+  }
 }
 
+/* ===== STOP DRAWING ===== */
 window.addEventListener("mouseup", () => { isDrawing = false; });
 
 /* ===== ZOOM + PAN ===== */
@@ -219,12 +220,19 @@ function applyTransform() {
 }
 
 /* ===== UI EVENTS ===== */
-document.getElementById("colorPicker").addEventListener("input", (e) => { selectedColor = e.target.value; });
+document.getElementById("colorPicker").addEventListener("input", (e) => {
+  selectedColor = e.target.value;
+});
 
 document.getElementById("applyGrid").addEventListener("click", () => {
   const r = parseInt(document.getElementById("rowsInput").value);
   const c = parseInt(document.getElementById("colsInput").value);
   initGrid(r, c);
+  renderGrid();
+});
+
+document.getElementById("lineNumberToggle").addEventListener("change", (e) => {
+  showLineNumbers = e.target.value === "on";
   renderGrid();
 });
 
