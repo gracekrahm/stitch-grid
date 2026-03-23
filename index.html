@@ -54,10 +54,19 @@
     cursor: pointer;
   }
 
-  svg {
+  /* NEW: viewport for zoom/pan */
+  #viewport {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #canvas {
     display: block;
     margin: auto;
     background: white;
+    transform-origin: 0 0;
   }
 </style>
 </head>
@@ -82,7 +91,9 @@
   <button id="applyGrid">Apply Grid</button>
 </div>
 
-<svg id="canvas" width="900" height="700" viewBox="0 0 900 700"></svg>
+<div id="viewport">
+  <svg id="canvas" width="900" height="700" viewBox="0 0 900 700"></svg>
+</div>
 
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
@@ -138,15 +149,8 @@ let isDrawing = false;
 
 /* ===== COLOR PALETTE ===== */
 const defaultColors = [
-  "#ffffff",
-  "#000000",
-  "#ff0000",
-  "#0000ff",
-  "#00aa00",
-  "#ffff00",
-  "#ff00ff",
-  "#00ffff",
-  "#888888"
+  "#ffffff","#000000","#ff0000","#0000ff",
+  "#00aa00","#ffff00","#ff00ff","#00ffff","#888888"
 ];
 
 let paletteColors = [...defaultColors];
@@ -154,7 +158,6 @@ const paletteDiv = document.getElementById("palette");
 
 function renderPalette() {
   paletteDiv.innerHTML = "";
-
   paletteColors.forEach(color => {
     const swatch = document.createElement("div");
     swatch.className = "swatch";
@@ -171,12 +174,10 @@ function renderPalette() {
 
 document.getElementById("saveColor").addEventListener("click", () => {
   const color = document.getElementById("colorPicker").value;
-
   if (!paletteColors.includes(color)) {
     paletteColors.push(color);
     renderPalette();
   }
-
   selectedColor = color;
 });
 
@@ -250,10 +251,63 @@ function renderGrid() {
   }
 }
 
-/* Stop drawing when mouse released */
+/* ===== STOP DRAWING ===== */
 window.addEventListener("mouseup", () => {
   isDrawing = false;
 });
+
+/* ===== ZOOM + PAN ===== */
+const viewport = document.getElementById("viewport");
+
+let scale = 1;
+let panX = 0;
+let panY = 0;
+let isPanning = false;
+let startX, startY;
+
+/* Zoom with wheel */
+viewport.addEventListener("wheel", (e) => {
+  e.preventDefault();
+
+  const zoomFactor = 0.1;
+  if (e.deltaY < 0) {
+    scale += zoomFactor;
+  } else {
+    scale = Math.max(0.2, scale - zoomFactor);
+  }
+
+  applyTransform();
+});
+
+/* Pan with middle mouse OR right mouse drag */
+viewport.addEventListener("mousedown", (e) => {
+  if (e.button === 1 || e.button === 2) {
+    isPanning = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    e.preventDefault();
+  }
+});
+
+window.addEventListener("mousemove", (e) => {
+  if (!isPanning) return;
+
+  panX = e.clientX - startX;
+  panY = e.clientY - startY;
+
+  applyTransform();
+});
+
+window.addEventListener("mouseup", () => {
+  isPanning = false;
+});
+
+/* Prevent context menu on right-click */
+viewport.addEventListener("contextmenu", (e) => e.preventDefault());
+
+function applyTransform() {
+  svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+}
 
 /* ===== UI EVENTS ===== */
 document.getElementById("colorPicker").addEventListener("input", (e) => {
@@ -268,10 +322,11 @@ document.getElementById("applyGrid").addEventListener("click", () => {
   renderGrid();
 });
 
-/* ===== INITIAL LOAD ===== */
+/* ===== INIT ===== */
 renderPalette();
 initGrid(rows, cols);
 renderGrid();
+applyTransform();
 
 </script>
 
