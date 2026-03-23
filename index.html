@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Knit Stitch Grid (Centered)</title>
+  <title>Knit Stitch Grid (Locked Layout)</title>
   <style>
     body {
       margin: 0;
@@ -42,24 +42,22 @@
 <body>
 
 <div id="controls">
-  <label>Stitch Size: <span id="stitchSizeVal"></span></label>
-  <input type="range" id="stitchSize" min="20" max="150" value="70" step="1">
-
-  <label>Row Spacing: <span id="rowSpacingVal"></span></label>
-  <input type="range" id="rowSpacing" min="0.5" max="1.5" value="0.9" step="0.01">
-
-  <label>Scale: <span id="scaleVal"></span></label>
-  <input type="range" id="scale" min="0.5" max="4" value="2" step="0.1">
-
-  <label>Stroke Color:</label>
-  <input type="color" id="color" value="#000000">
+  <label>Fill Color:</label>
+  <input type="color" id="color" value="#ffffff">
 </div>
 
-<svg id="canvas" width="900" height="700" viewBox="0 0 900 700"></svg>
+<svg id="canvas" width="900" height="700" viewBox="0 0 900 700">
+  <g id="grid"></g>
+</svg>
 
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
-const svg = document.getElementById("canvas");
+const grid = document.getElementById("grid");
+
+/* ===== LOCKED PARAMETERS ===== */
+const stitchSize = 97;
+const rowSpacing = 0.79;
+const scale = 4;
 
 /* ===== STITCH PATH ===== */
 const stitchPathData = `
@@ -98,16 +96,7 @@ Z
 `;
 
 function renderGrid() {
-  svg.innerHTML = "";
-
-  const stitchSize = parseFloat(document.getElementById("stitchSize").value);
-  const rowSpacing = parseFloat(document.getElementById("rowSpacing").value);
-  const scale = parseFloat(document.getElementById("scale").value);
-  const color = document.getElementById("color").value;
-
-  document.getElementById("stitchSizeVal").textContent = stitchSize;
-  document.getElementById("rowSpacingVal").textContent = rowSpacing;
-  document.getElementById("scaleVal").textContent = scale;
+  grid.innerHTML = "";
 
   const rows = 6;
   const cols = 10;
@@ -115,13 +104,13 @@ function renderGrid() {
   const canvasWidth = 900;
   const canvasHeight = 700;
 
-  // Compute grid dimensions
   const gridWidth = (cols - 1) * stitchSize;
   const gridHeight = (rows - 1) * stitchSize * rowSpacing;
 
-  // Center the grid
   const offsetX = (canvasWidth - gridWidth) / 2;
   const offsetY = (canvasHeight - gridHeight) / 2;
+
+  const color = document.getElementById("color").value;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -130,37 +119,32 @@ function renderGrid() {
 
       const path = document.createElementNS(svgNS, "path");
       path.setAttribute("d", stitchPathData);
-      path.setAttribute("fill", "none");
-      path.setAttribute("stroke", color);
+
+      // IMPORTANT: stroke black, fill user color
+      path.setAttribute("stroke", "black");
+      path.setAttribute("fill", color);
 
       group.appendChild(path);
-      svg.appendChild(group);
+      grid.appendChild(group);
 
       const bbox = path.getBBox();
-
       const cx = bbox.x + bbox.width / 2;
       const cy = bbox.y + bbox.height / 2;
+
       group.setAttribute(
         "transform",
         `
         translate(${offsetX + c * stitchSize}, ${offsetY + r * stitchSize * rowSpacing})
         translate(${-cx}, ${-cy})
+        scale(${scale})
         `
       );
-      
-      path.setAttribute("transform", `scale(${scale})`);
-      
     }
   }
 }
 
+document.getElementById("color").addEventListener("input", renderGrid);
 
-/* Hook up controls */
-document.querySelectorAll("input").forEach(input => {
-  input.addEventListener("input", renderGrid);
-});
-
-/* Initial render */
 renderGrid();
 </script>
 
