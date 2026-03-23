@@ -134,6 +134,7 @@ let rows = 6;
 let cols = 10;
 let selectedColor = "#ff0000";
 let stitchColors = [];
+let isDrawing = false;
 
 /* ===== COLOR PALETTE ===== */
 const defaultColors = [
@@ -149,7 +150,6 @@ const defaultColors = [
 ];
 
 let paletteColors = [...defaultColors];
-
 const paletteDiv = document.getElementById("palette");
 
 function renderPalette() {
@@ -215,9 +215,19 @@ function renderGrid() {
       path.setAttribute("stroke-width", "0.5");
       path.style.cursor = "pointer";
 
-      path.addEventListener("click", () => {
+      function paint() {
         stitchColors[r][c] = selectedColor;
         path.setAttribute("fill", selectedColor);
+      }
+
+      path.addEventListener("mousedown", (e) => {
+        isDrawing = true;
+        paint();
+        e.preventDefault();
+      });
+
+      path.addEventListener("mouseenter", () => {
+        if (isDrawing) paint();
       });
 
       group.appendChild(path);
@@ -239,6 +249,11 @@ function renderGrid() {
     }
   }
 }
+
+/* Stop drawing when mouse released */
+window.addEventListener("mouseup", () => {
+  isDrawing = false;
+});
 
 /* ===== UI EVENTS ===== */
 document.getElementById("colorPicker").addEventListener("input", (e) => {
