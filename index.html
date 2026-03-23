@@ -249,27 +249,7 @@ function renderGrid() {
     }
   }
 }
-/* ===== COLUMN NUMBERS (BOTTOM) ===== */
-for (let c = 0; c < cols; c++) {
-  const text = document.createElementNS(svgNS, "text");
 
-  text.textContent = c + 1;
-
-  const x = offsetX + c * STITCH_SIZE;
-  const y = offsetY + (rows - 1) * STITCH_SIZE * ROW_SPACING + 40;
-
-  text.setAttribute("x", x);
-  text.setAttribute("y", y);
-
-  text.setAttribute("text-anchor", "middle");
-  text.setAttribute("dominant-baseline", "middle");
-
-  text.setAttribute("fill", "#000");
-  text.setAttribute("font-weight", "bold");
-  text.setAttribute("font-size", "14px");
-
-  svg.appendChild(text);
-}
 /* Stop drawing when mouse released */
 window.addEventListener("mouseup", () => {
   isDrawing = false;
