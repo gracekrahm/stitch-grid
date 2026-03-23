@@ -11,13 +11,9 @@
     text-align: center;
   }
 
-  h1 {
-    margin-top: 20px;
-  }
+  h1 { margin-top: 20px; }
 
-  #toolbar {
-    margin: 15px;
-  }
+  #toolbar { margin: 15px; }
 
   .color-btn {
     width: 30px;
@@ -28,9 +24,7 @@
     display: inline-block;
   }
 
-  .selected {
-    outline: 3px solid black;
-  }
+  .selected { outline: 3px solid black; }
 
   #chart {
     background: white;
@@ -44,7 +38,6 @@
 <h1>Knit Chart Editor</h1>
 
 <div id="toolbar"></div>
-
 <svg id="chart" width="600" height="600"></svg>
 
 <script>
@@ -55,7 +48,6 @@ const stitchSize = 18
 const colors = ["#ffffff", "#d62828", "#1d3557", "#2a9d8f", "#f4a261"]
 let currentColor = colors[1]
 
-// grid data
 let grid = Array.from({length: rows}, () => Array(cols).fill(colors[0]))
 
 const svg = document.getElementById("chart")
@@ -78,7 +70,7 @@ colors.forEach(color => {
   toolbar.appendChild(btn)
 })
 
-// ---------- STITCH SVG PATHS ----------
+// ---------- PATHS ----------
 const LEFT_PATH = `
 M 937.63749,54.408191
 C -0.0611,-7.00744 -0.0567,-14.04199 0.15778,-21.04035
@@ -117,20 +109,11 @@ C 0.061,-7.00744 0.057,-14.04199 -0.1578,-21.04035
 Z
 `
 
-// ---------- STITCH CREATION ----------
-function createStitchGroup(r, c) {
+// ---------- NORMALIZE PATH GROUP ----------
+function createNormalizedStitchGroup(r, c) {
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
 
-  const scale = stitchSize / 120
-
-  // ✅ FIXED: center stitch based on its true SVG center (~981, 120)
-  group.setAttribute(
-    "transform",
-    `translate(${c * stitchSize}, ${r * stitchSize * 0.9}) scale(${scale}) translate(-981,-120)`
-  )
-
-  group.dataset.row = r
-  group.dataset.col = c
+  const tempGroup = document.createElementNS("http://www.w3.org/2000/svg", "g")
 
   const left = document.createElementNS("http://www.w3.org/2000/svg", "path")
   const right = document.createElementNS("http://www.w3.org/2000/svg", "path")
@@ -138,20 +121,52 @@ function createStitchGroup(r, c) {
   left.setAttribute("d", LEFT_PATH)
   right.setAttribute("d", RIGHT_PATH)
 
+  tempGroup.appendChild(left)
+  tempGroup.appendChild(right)
+
+  svg.appendChild(tempGroup)
+
+  // Compute bounding box
+  const bbox = tempGroup.getBBox()
+  const cx = bbox.x + bbox.width / 2
+  const cy = bbox.y + bbox.height / 2
+
+  // Remove temp from DOM
+  svg.removeChild(tempGroup)
+
+  const scale = stitchSize / Math.max(bbox.width, bbox.height)
+
   const fillColor = grid[r][c]
-  const isUncolored = fillColor === "#ffffff"
 
-  left.setAttribute("fill", fillColor)
-  right.setAttribute("fill", fillColor)
+  const leftFinal = document.createElementNS("http://www.w3.org/2000/svg", "path")
+  const rightFinal = document.createElementNS("http://www.w3.org/2000/svg", "path")
 
-  left.setAttribute("stroke", "#000")
-  right.setAttribute("stroke", "#000")
+  leftFinal.setAttribute("d", LEFT_PATH)
+  rightFinal.setAttribute("d", RIGHT_PATH)
 
-  left.setAttribute("stroke-width", isUncolored ? "0.6" : "0.3")
-  right.setAttribute("stroke-width", isUncolored ? "0.6" : "0.3")
+  leftFinal.setAttribute("fill", fillColor)
+  rightFinal.setAttribute("fill", fillColor)
 
-  group.appendChild(left)
-  group.appendChild(right)
+  leftFinal.setAttribute("stroke", "#000")
+  rightFinal.setAttribute("stroke", "#000")
+
+  leftFinal.setAttribute("stroke-width", "0.3")
+  rightFinal.setAttribute("stroke-width", "0.3")
+
+  group.setAttribute(
+    "transform",
+    `
+    translate(${c * stitchSize}, ${r * stitchSize * 0.9})
+    scale(${scale})
+    translate(${-cx}, ${-cy})
+    `
+  )
+
+  group.dataset.row = r
+  group.dataset.col = c
+
+  group.appendChild(leftFinal)
+  group.appendChild(rightFinal)
 
   return group
 }
@@ -159,51 +174,9 @@ function createStitchGroup(r, c) {
 // ---------- BUILD GRID ----------
 for (let r = 0; r < rows; r++) {
   for (let c = 0; c < cols; c++) {
-    svg.appendChild(createStitchGroup(r, c))
+    svg.appendChild(createNormalizedStitchGroup(r, c))
   }
 }
-
-// ---------- CLICK HANDLING ----------
-svg.addEventListener("click", (e) => {
-  const group = e.target.closest("g")
-  if (!group) return
-
-  const r = group.dataset.row
-  const c = group.dataset.col
-
-  if (r === undefined || c === undefined) return
-
-  grid[r][c] = currentColor
-
-  group.querySelectorAll("path").forEach(p => {
-    p.setAttribute("fill", currentColor)
-  })
-})
-
-// ---------- DRAG PAINT ----------
-let isMouseDown = false
-
-svg.addEventListener("mousedown", () => isMouseDown = true)
-svg.addEventListener("mouseup", () => isMouseDown = false)
-svg.addEventListener("mouseleave", () => isMouseDown = false)
-
-svg.addEventListener("mousemove", (e) => {
-  if (!isMouseDown) return
-
-  const group = e.target.closest("g")
-  if (!group) return
-
-  const r = group.dataset.row
-  const c = group.dataset.col
-
-  if (r === undefined || c === undefined) return
-
-  grid[r][c] = currentColor
-
-  group.querySelectorAll("path").forEach(p => {
-    p.setAttribute("fill", currentColor)
-  })
-})
 
 </script>
 
