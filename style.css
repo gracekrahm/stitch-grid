@@ -22,7 +22,7 @@ label {
   margin-top: 8px;
 }
 
-input {
+input, select {
   width: 100%;
 }
 
@@ -60,4 +60,11 @@ button {
   margin: auto;
   background: white;
   transform-origin: 0 0;
+}
+
+.line-number {
+  font-size: 12px;
+  fill: #333;
+  pointer-events: none;
+  user-select: none;
 }
