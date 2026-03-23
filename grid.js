@@ -1,18 +1,25 @@
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("canvas");
 const overlay = document.getElementById("overlay");
-const container = document.getElementById("canvasContainer");
 
 let rows = 6;
 let cols = 10;
 let stitchColors = [];
 let selectedColor = "#ff0000";
+let isDrawing = false;
 
 /* Layout */
 const STITCH_SIZE = 80;
 const ROW_SPACING = 0.8;
 
-/* STITCH PATH (unchanged) */
+/* Zoom */
+let zoom = 1;
+
+/* Base SVG size */
+const WIDTH = 900;
+const HEIGHT = 700;
+
+/* Stitch path */
 const stitchPathData = `
 m 0,0
 c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
@@ -32,6 +39,7 @@ C -1.70964,6.6598 -1.02979,5.2123 -0.78582,3.66371
 Z
 `;
 
+/* Initialize grid */
 function initGrid(r, c) {
   rows = r;
   cols = c;
@@ -40,19 +48,18 @@ function initGrid(r, c) {
   );
 }
 
-/* ===== RENDER ===== */
+/* Render grid */
 function renderGrid() {
   svg.innerHTML = "";
   overlay.innerHTML = "";
 
-  const canvasWidth = 900;
-  const canvasHeight = 700;
+  svg.setAttribute("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
 
   const gridWidth = (cols - 1) * STITCH_SIZE;
   const gridHeight = (rows - 1) * STITCH_SIZE * ROW_SPACING;
 
-  const offsetX = (canvasWidth - gridWidth) / 2;
-  const offsetY = (canvasHeight - gridHeight) / 2;
+  const offsetX = (WIDTH - gridWidth) / 2;
+  const offsetY = (HEIGHT - gridHeight) / 2;
 
   /* STITCHES */
   for (let r = 0; r < rows; r++) {
@@ -98,11 +105,11 @@ function renderGrid() {
   /* ROW NUMBERS */
   for (let r = 0; r < rows; r++) {
     const div = document.createElement("div");
-    div.className = "num";
+    div.className = "label";
     div.textContent = r + 1;
 
     div.style.left = `${offsetX - 30}px`;
-    div.style.top = `${offsetY + r * STITCH_SIZE * ROW_SPACING + (STITCH_SIZE * ROW_SPACING)/2}px`;
+    div.style.top = `${offsetY + r * STITCH_SIZE * ROW_SPACING + (STITCH_SIZE * ROW_SPACING) / 2}px`;
     div.style.transform = "translateY(-50%)";
 
     overlay.appendChild(div);
@@ -111,31 +118,49 @@ function renderGrid() {
   /* COLUMN NUMBERS */
   for (let c = 0; c < cols; c++) {
     const div = document.createElement("div");
-    div.className = "num";
+    div.className = "label";
     div.textContent = c + 1;
 
     div.style.left = `${offsetX + c * STITCH_SIZE}px`;
     div.style.top = `${offsetY + (rows - 1) * STITCH_SIZE * ROW_SPACING + 30}px`;
-    div.style.transform = "translateX(0)";
 
     overlay.appendChild(div);
   }
 }
 
-/* ===== ZOOM ===== */
+/* Zoom handling using viewBox */
+function applyZoom() {
+  const w = WIDTH / zoom;
+  const h = HEIGHT / zoom;
+
+  const x = (WIDTH - w) / 2;
+  const y = (HEIGHT - h) / 2;
+
+  svg.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
+}
+
+/* Slider zoom */
 const zoomSlider = document.getElementById("zoomSlider");
-let zoom = 1;
 
 zoomSlider.addEventListener("input", (e) => {
   zoom = parseFloat(e.target.value);
   applyZoom();
 });
 
-function applyZoom() {
-  container.style.transform = `scale(${zoom})`;
-}
+/* Mouse wheel zoom (Ctrl + scroll) */
+window.addEventListener("wheel", (e) => {
+  if (!e.ctrlKey) return;
 
-/* ===== EVENTS ===== */
+  e.preventDefault();
+
+  zoom += -e.deltaY * 0.0015;
+  zoom = Math.min(2, Math.max(1, zoom));
+
+  zoomSlider.value = zoom;
+  applyZoom();
+});
+
+/* UI */
 document.getElementById("applyGrid").onclick = () => {
   initGrid(
     parseInt(rowsInput.value),
@@ -144,7 +169,7 @@ document.getElementById("applyGrid").onclick = () => {
   renderGrid();
 };
 
-/* INIT */
+/* Init */
 initGrid(rows, cols);
 renderGrid();
 applyZoom();
