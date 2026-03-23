@@ -1,0 +1,63 @@
+body {
+  margin: 0;
+  background: #f5f5f5;
+  font-family: sans-serif;
+}
+
+#controls {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 10;
+  width: 240px;
+}
+
+label {
+  font-size: 12px;
+  display: block;
+  margin-top: 8px;
+}
+
+input {
+  width: 100%;
+}
+
+button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 6px;
+  cursor: pointer;
+}
+
+#palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+/* Viewport for zoom/pan */
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+#canvas {
+  display: block;
+  margin: auto;
+  background: white;
+  transform-origin: 0 0;
+}
