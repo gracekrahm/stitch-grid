@@ -111,6 +111,35 @@ function renderGrid() {
         stitchColors[r][c] = selectedColor;
         path.setAttribute("fill", selectedColor);
       }
+      if (showLineNumbers) {
+  for (let r = 0; r < rows; r++) {
+    const text = document.createElementNS(svgNS, "text");
+
+    text.textContent = r + 1;
+    text.setAttribute("x", offsetX - 20);
+    text.setAttribute("y", offsetY + r * STITCH_SIZE * ROW_SPACING + STITCH_SIZE / 2);
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("text-anchor", "end");
+
+    text.classList.add("line-number");
+
+    svg.appendChild(text);
+  }
+}
+      if (showLineNumbers) {
+  for (let c = 0; c < cols; c++) {
+    const text = document.createElementNS(svgNS, "text");
+
+    text.textContent = c + 1;
+    text.setAttribute("x", offsetX + c * STITCH_SIZE + STITCH_SIZE / 2);
+    text.setAttribute("y", offsetY - 10);
+    text.setAttribute("text-anchor", "middle");
+
+    text.classList.add("line-number");
+
+    svg.appendChild(text);
+  }
+}
 
       path.addEventListener("mousedown", (e) => {
         isDrawing = true;
