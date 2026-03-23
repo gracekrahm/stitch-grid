@@ -162,7 +162,7 @@ window.addEventListener("mouseup", () => { isPanning = false; });
 viewport.addEventListener("contextmenu", (e) => e.preventDefault());
 
 function applyTransform() {
-  svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  svg.style.transform = `scale(1) translate(0px, 0px)`;
 }
 
 /* ===== UI EVENTS ===== */
