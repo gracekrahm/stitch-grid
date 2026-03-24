@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Knit Chart Editor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #e8e4df;
+    font-family: 'Georgia', serif;
+    overflow: auto;
+    min-height: 100vh;
+  }
+
+  #controls {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    background: #faf8f5;
+    padding: 14px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 10;
+    width: 210px;
+    border: 1px solid #ddd8d0;
+  }
+
+  #controls h2 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7a6a5a;
+    font-weight: normal;
+    border-bottom: 1px solid #e0d8ce;
+    padding-bottom: 8px;
+  }
+
+  label {
+    font-size: 11px;
+    display: block;
+    margin-top: 10px;
+    color: #7a6a5a;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 5px 7px;
+    border: 1px solid #d4cec5;
+    border-radius: 5px;
+    background: #f5f2ee;
+    font-size: 13px;
+    color: #3a3028;
+    margin-top: 3px;
+  }
+  input[type="number"]:focus { outline: none; border-color: #a09080; }
+
+  #palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.active { border-color: #6a5a4a; transform: scale(1.1); }
+
+  input[type="color"] {
+    width: 100%;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid #d4cec5;
+    border-radius: 5px;
+    background: #f5f2ee;
+    cursor: pointer;
+    margin-top: 3px;
+  }
+
+  button {
+    margin-top: 8px;
+    width: 100%;
+    padding: 7px;
+    cursor: pointer;
+    border: 1px solid #c8beb0;
+    border-radius: 6px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  #saveColor { background: #f0ece6; color: #6a5a4a; }
+  #saveColor:hover { background: #e6e0d8; }
+  #applyGrid { background: #6a5a4a; color: #faf8f5; border-color: #5a4a3a; }
+  #applyGrid:hover { background: #5a4a3a; }
+
+  /* Zoom controls */
+  #zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  .zoom-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid #c8beb0;
+    background: #faf8f5;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, transform 0.1s;
+    color: #6a5a4a;
+  }
+  .zoom-btn:hover { background: #f0ece6; transform: scale(1.08); }
+  .zoom-btn:active { transform: scale(0.96); }
+  #zoom-reset { font-size: 10px; letter-spacing: 0.04em; }
+
+  #zoom-label {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(58,48,40,0.65);
+    color: #f5f2ee;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.07em;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  #zoom-label.visible { opacity: 1; }
+
+  /* Chart sits in a normal flow wrapper so scrollbars appear naturally */
+  #chart-wrap {
+    padding: 40px 60px 80px 240px;
+  }
+
+  svg#canvas {
+    display: block;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    transform-origin: top left;
+    cursor: crosshair;
+    /* transition makes zoom feel smooth */
+    transition: transform 0.12s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <h2>Knit Chart</h2>
+
+  <label>Rows</label>
+  <input type="number" id="rowsInput" value="6" min="1" max="200" />
+
+  <label>Stitches (Columns)</label>
+  <input type="number" id="colsInput" value="10" min="1" max="200" />
+
+  <label>Stitch Gauge (per 10cm)</label>
+  <input type="number" id="stitchGauge" value="25" min="1" max="100" />
+
+  <label>Row Gauge (per 10cm)</label>
+  <input type="number" id="rowGauge" value="30" min="1" max="100" />
+
+  <label>Quick Colors</label>
+  <div id="palette"></div>
+
+  <label>Color Wheel</label>
+  <input type="color" id="colorPicker" value="#ff0000" />
+
+  <button id="saveColor">+ Save to Palette</button>
+  <button id="applyGrid">Apply Grid</button>
+</div>
+
+<div id="chart-wrap">
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+
+<div id="zoom-controls">
+  <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+  <button class="zoom-btn" id="zoom-reset" title="Reset Zoom">1×</button>
+  <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+</div>
+
+<div id="zoom-label"></div>
+
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("canvas");
+const chartWrap = document.getElementById("chart-wrap");
+
+/* ===== GAUGE ===== */
+const STITCH_SIZE = 97;
+const ROW_SPACING = 0.79;
+const SCALE = 4;
+const PAD = 60;
+
+/* ===== STITCH PATH ===== */
+const stitchPathData = `
+m 0,0
+c 0.0161,-1.85405 0.0151,-3.71528 -0.0418,-5.56693
+-0.21376,-1.60508 -0.82301,-3.15569 -1.71114,-4.50377
+-0.83955,-1.20233 -1.8919,0.15882 -2.47536,0.86493
+-0.75126,0.76503 -1.39814,1.63108 -2.0184,2.506
+-1.09808,1.67485 -2.19951,3.34692 -3.40046,4.94991
+-0.46098,0.96625 -1.19549,1.81042 -1.24952,2.91779
+-0.33647,1.91326 -0.25331,3.86606 -0.51202,5.7905
+-0.14293,2.12408 -0.18126,4.25548 0.007,6.37822
+-0.084,1.46207 0.009,2.94939 0.57817,4.31714
+0.52977,0.82075 1.22534,-1.23227 1.77945,-1.62912
+1.41695,-1.79237 2.33146,-3.93561 3.87033,-5.63961
+0.80261,-0.8534 1.56054,-1.79847 2.48679,-2.50545
+C -1.70964,6.6598 -1.02979,5.2123 -0.78582,3.66371
+-0.50364,2.44765 -0.16887,1.23842 0,0 Z
+m -23.25957,0
+c -0.0161,-1.85405 -0.0151,-3.71528 0.0417,-5.56693
+0.21375,-1.60508 0.82301,-3.15569 1.71114,-4.50377
+0.83955,-1.20233 1.8919,0.15882 2.47539,0.86493
+0.75123,0.76503 1.39811,1.63108 2.01837,2.506
+1.09807,1.67485 2.19951,3.34692 3.40045,4.94991
+0.46098,0.96625 1.19549,1.81042 1.24952,2.91779
+0.33647,1.91326 0.25331,3.86606 0.51202,5.7905
+0.14291,2.12408 0.18124,4.25548 -0.007,6.37822
+0.0839,1.46207 -0.009,2.94939 -0.57817,4.31714
+-0.52975,0.82075 -1.22531,-1.23227 -1.77945,-1.62912
+-1.41695,-1.79237 -2.33146,-3.93561 -3.87033,-5.63961
+-0.80259,-0.8534 -1.56054,-1.79847 -2.48676,-2.50545
+C -21.55001,6.6598 -22.22989,5.2123 -22.47383,3.66371
+-22.75604,2.44765 -23.09081,1.23842 -23.25988,0 Z`;
+
+/* ===== ZOOM ===== */
+let cssZoom = 1;
+let ZOOM_MIN = 1;   // dynamically set after each render
+const ZOOM_MAX = 8;
+const ZOOM_STEP = 1.25;
+
+let svgNaturalW = 0, svgNaturalH = 0;
+let labelTimer = null;
+const zoomLabel = document.getElementById("zoom-label");
+
+function computeZoomMin() {
+  const availW = window.innerWidth  - 240 - 80;
+  const availH = window.innerHeight - 80;
+  return Math.min(1, Math.min(availW / svgNaturalW, availH / svgNaturalH));
+}
+
+function setZoom(z) {
+  cssZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+  svg.style.transform = cssZoom === 1 ? "" : `scale(${cssZoom})`;
+
+  if (cssZoom > 1) {
+    chartWrap.style.paddingRight  = `${60 + svgNaturalW * (cssZoom - 1)}px`;
+    chartWrap.style.paddingBottom = `${80 + svgNaturalH * (cssZoom - 1)}px`;
+  } else {
+    chartWrap.style.paddingRight  = "";
+    chartWrap.style.paddingBottom = "";
+  }
+
+  zoomLabel.textContent = `${Math.round(cssZoom * 100)}%`;
+  zoomLabel.classList.add("visible");
+  clearTimeout(labelTimer);
+  labelTimer = setTimeout(() => zoomLabel.classList.remove("visible"), 1400);
+}
+
+// Ctrl+wheel = zoom
+window.addEventListener("wheel", (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
+  setZoom(cssZoom * factor);
+}, { passive: false });
+
+document.getElementById("zoom-in").addEventListener("click",  () => setZoom(cssZoom * ZOOM_STEP));
+document.getElementById("zoom-out").addEventListener("click", () => setZoom(cssZoom / ZOOM_STEP));
+document.getElementById("zoom-reset").addEventListener("click", () => setZoom(1));
+
+window.addEventListener("resize", () => {
+  ZOOM_MIN = computeZoomMin();
+  if (cssZoom < ZOOM_MIN) setZoom(ZOOM_MIN);
+});
+
+/* ===== STATE ===== */
+let rows = 6, cols = 10;
+let selectedColor = "#ff0000";
+let stitchColors = [];
+let isDrawing = false;
+
+window.addEventListener("mouseup", () => { isDrawing = false; });
+
+/* ===== PALETTE ===== */
+const defaultColors = [
+  "#ffffff","#1a1209","#c0392b","#2980b9",
+  "#27ae60","#f1c40f","#8e44ad","#16a085","#95a5a6"
+];
+let paletteColors = [...defaultColors];
+const paletteDiv = document.getElementById("palette");
+
+function renderPalette() {
+  paletteDiv.innerHTML = "";
+  paletteColors.forEach(color => {
+    const swatch = document.createElement("div");
+    swatch.className = "swatch";
+    swatch.style.background = color;
+    if (color === selectedColor) swatch.classList.add("active");
+    swatch.addEventListener("click", () => {
+      selectedColor = color;
+      document.getElementById("colorPicker").value = color;
+      document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+      swatch.classList.add("active");
+    });
+    paletteDiv.appendChild(swatch);
+  });
+}
+
+document.getElementById("saveColor").addEventListener("click", () => {
+  const color = document.getElementById("colorPicker").value;
+  if (!paletteColors.includes(color)) { paletteColors.push(color); renderPalette(); }
+  selectedColor = color;
+  document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+});
+
+document.getElementById("colorPicker").addEventListener("input", (e) => {
+  selectedColor = e.target.value;
+  document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+});
+
+/* ===== GRID ===== */
+function initGrid(r, c, preserve) {
+  const old = preserve ? stitchColors.map(row => [...row]) : null;
+  rows = r; cols = c;
+  stitchColors = Array.from({ length: rows }, (_, ri) =>
+    Array.from({ length: cols }, (_, ci) =>
+      (old && old[ri] && old[ri][ci]) ? old[ri][ci] : "#ffffff"
+    )
+  );
+}
+
+function getGaugeScale() {
+  const sg = parseFloat(document.getElementById("stitchGauge").value) || 25;
+  const rg = parseFloat(document.getElementById("rowGauge").value)   || 30;
+  const scaleX = rg / sg;
+  const scaleY = 1;
+  return { scaleX, scaleY };
+}
+
+function renderGrid() {
+  svg.innerHTML = "";
+
+  const { scaleX, scaleY } = getGaugeScale();
+
+  const LABEL_GAP  = 20;
+  const LABEL_SIZE = 24;
+  const LABEL_AREA = LABEL_GAP + LABEL_SIZE + 16;
+
+  // Each stitch anchor is at (STITCH_SIZE + c*STITCH_SIZE, STITCH_SIZE + r*STITCH_SIZE*ROW_SPACING)
+  // — i.e. col 0 starts one STITCH_SIZE in from the left, giving plenty of room
+  // for the stitch shape which bleeds left of its anchor.
+  const LEFT_INSET = STITCH_SIZE;   // one stitch of breathing room on the left
+  const TOP_INSET  = STITCH_SIZE * ROW_SPACING; // one row of breathing room on top
+
+  // Total pre-warp content dimensions
+  const contentW = LEFT_INSET + (cols - 1) * STITCH_SIZE + STITCH_SIZE;
+  const contentH = TOP_INSET  + (rows - 1) * STITCH_SIZE * ROW_SPACING + STITCH_SIZE * ROW_SPACING;
+
+  svgNaturalW = contentW * scaleX + PAD;
+  svgNaturalH = contentH          + PAD + LABEL_AREA;
+
+  svg.setAttribute("width",  svgNaturalW);
+  svg.setAttribute("height", svgNaturalH);
+
+  // Outer group: just vertical padding (no x — x padding is baked into LEFT_INSET*scaleX via inner scale)
+  // Inner group: apply gauge warp
+  const outerGroup = document.createElementNS(svgNS, "g");
+  outerGroup.setAttribute("transform", `translate(0, ${PAD / 2})`);
+  svg.appendChild(outerGroup);
+
+  const chartGroup = document.createElementNS(svgNS, "g");
+  chartGroup.setAttribute("id", "chart-group");
+  chartGroup.setAttribute("transform", `scale(${scaleX}, 1)`);
+  outerGroup.appendChild(chartGroup);
+
+  // Measure stitch path bbox once
+  const tempPath = document.createElementNS(svgNS, "path");
+  tempPath.setAttribute("d", stitchPathData);
+  tempPath.setAttribute("transform", `scale(${SCALE})`);
+  chartGroup.appendChild(tempPath);
+  const bb = tempPath.getBBox();
+  chartGroup.removeChild(tempPath);
+  const bx = bb.x + bb.width  / 2;
+  const by = bb.y + bb.height / 2;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const group = document.createElementNS(svgNS, "g");
+      const path  = document.createElementNS(svgNS, "path");
+
+      path.setAttribute("d", stitchPathData);
+      path.setAttribute("stroke", "#5a4a3a");
+      path.setAttribute("fill", stitchColors[r][c]);
+      path.setAttribute("stroke-width", `${0.4 / scaleX}`);
+      path.setAttribute("transform", `scale(${SCALE})`);
+
+      const row = r, col = c;
+      function paint() {
+        stitchColors[row][col] = selectedColor;
+        path.setAttribute("fill", selectedColor);
+      }
+      path.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        isDrawing = true; paint(); e.preventDefault();
+      });
+      path.addEventListener("mouseenter", () => { if (isDrawing) paint(); });
+
+      group.appendChild(path);
+      chartGroup.appendChild(group);
+
+      // Anchor = (LEFT_INSET + c*STITCH_SIZE, TOP_INSET + r*STITCH_SIZE*ROW_SPACING)
+      // then shift by (-bx, -by) to centre the path on that anchor
+      const ax = LEFT_INSET + c * STITCH_SIZE;
+      const ay = TOP_INSET  + r * STITCH_SIZE * ROW_SPACING;
+      group.setAttribute("transform", `translate(${ax}, ${ay}) translate(${-bx}, ${-by})`);
+    }
+  }
+
+  // Column numbers: read actual rendered centres via getBoundingClientRect
+  // labelY is in raw SVG pixel space — below the warped chart bottom
+  const chartBottomPx = PAD / 2 + contentH; // outerGroup y-offset + content height (scaleY=1 so no warp)
+  const labelY = chartBottomPx + LABEL_GAP;
+
+  const ROW_LABEL_GAP = 16;
+  const ROW_LABEL_W   = 50;
+  svgNaturalW += ROW_LABEL_W;
+  svg.setAttribute("width", svgNaturalW);
+
+  const svgRect = svg.getBoundingClientRect();
+  const allGroups = chartGroup.querySelectorAll("g");
+
+  // Column numbers — centred on each top-row stitch
+  for (let c = 0; c < cols; c++) {
+    const gr = allGroups[c].getBoundingClientRect();
+    const centerX = gr.left + gr.width / 2 - svgRect.left;
+
+    const text = document.createElementNS(svgNS, "text");
+    text.setAttribute("x", centerX);
+    text.setAttribute("y", labelY);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "hanging");
+    text.setAttribute("font-size", LABEL_SIZE);
+    text.setAttribute("font-family", "Georgia, serif");
+    text.setAttribute("fill", "#8a7a6a");
+    text.setAttribute("pointer-events", "none");
+    text.textContent = c + 1;
+    svg.appendChild(text);
+  }
+
+  // Row numbers — to the right of the last stitch in each row
+  for (let r = 0; r < rows; r++) {
+    const lastStitch = allGroups[r * cols + (cols - 1)];
+    const gr = lastStitch.getBoundingClientRect();
+    const rightX  = gr.right  - svgRect.left + ROW_LABEL_GAP;
+    const centerY = gr.top + gr.height / 2 - svgRect.top;
+
+    const text = document.createElementNS(svgNS, "text");
+    text.setAttribute("x", rightX);
+    text.setAttribute("y", centerY);
+    text.setAttribute("text-anchor", "start");
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("font-size", LABEL_SIZE);
+    text.setAttribute("font-family", "Georgia, serif");
+    text.setAttribute("fill", "#8a7a6a");
+    text.setAttribute("pointer-events", "none");
+    text.textContent = rows - r;
+    svg.appendChild(text);
+  }
+
+  ZOOM_MIN = computeZoomMin();
+  cssZoom = 1;
+  svg.style.transform = "";
+  chartWrap.style.paddingRight  = "";
+  chartWrap.style.paddingBottom = "";
+}
+
+document.getElementById("applyGrid").addEventListener("click", () => {
+  const r = Math.max(1, Math.min(200, parseInt(document.getElementById("rowsInput").value)  || 6));
+  const c = Math.max(1, Math.min(200, parseInt(document.getElementById("colsInput").value) || 10));
+  initGrid(r, c, true);
+  renderGrid();
+});
+
+// Live gauge preview without rebuilding colors
+["stitchGauge","rowGauge"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => renderGrid());
+});
+
+/* ===== BOOT ===== */
+renderPalette();
+initGrid(rows, cols, false);
+renderGrid();
+</script>
+</body>
+</html>
