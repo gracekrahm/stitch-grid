@@ -106,6 +106,18 @@
   #applyGrid { background: #6a5a4a; color: #faf8f5; border-color: #5a4a3a; }
   #applyGrid:hover { background: #5a4a3a; }
 
+  #toggleView {
+    background: #f5f2ee;
+    color: #5a4a3a;
+    border-color: #b0a898;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  #toggleView:hover { background: #ece8e2; }
+  #toggleView .mode-label { font-weight: bold; }
+
   /* Zoom controls */
   #zoom-controls {
     position: fixed;
@@ -196,6 +208,7 @@
 
   <button id="saveColor">+ Save to Palette</button>
   <button id="applyGrid">Apply Grid</button>
+  <button id="toggleView">View: <span class="mode-label">Realistic</span></button>
 </div>
 
 <div id="chart-wrap">
@@ -350,6 +363,16 @@ document.getElementById("colorPicker").addEventListener("input", (e) => {
   document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
 });
 
+/* ===== VIEW MODE ===== */
+let viewMode = "realistic";
+
+document.getElementById("toggleView").addEventListener("click", () => {
+  viewMode = viewMode === "realistic" ? "box" : "realistic";
+  document.querySelector("#toggleView .mode-label").textContent =
+    viewMode === "realistic" ? "Realistic" : "Box";
+  renderGrid();
+});
+
 /* ===== GRID ===== */
 function initGrid(r, c, preserve) {
   const old = preserve ? stitchColors.map(row => [...row]) : null;
@@ -369,7 +392,110 @@ function getGaugeScale() {
   return { scaleX, scaleY };
 }
 
+function renderBoxGrid() {
+  svg.innerHTML = "";
+
+  const { scaleX } = getGaugeScale();
+
+  const LABEL_GAP  = 20;
+  const LABEL_SIZE = 24;
+  const LABEL_AREA = LABEL_GAP + LABEL_SIZE + 16;
+  const ROW_LABEL_GAP = 16;
+  const ROW_LABEL_W   = 50;
+
+  // Box size: width warped by gauge, height fixed
+  const BOX_W = STITCH_SIZE * scaleX;  // pixel width of each box
+  const BOX_H = STITCH_SIZE * ROW_SPACING; // pixel height of each box
+
+  const PAD_LEFT = PAD;
+  const PAD_TOP  = PAD / 2;
+
+  const gridW = cols * BOX_W;
+  const gridH = rows * BOX_H;
+
+  svgNaturalW = PAD_LEFT + gridW + ROW_LABEL_W + ROW_LABEL_GAP;
+  svgNaturalH = PAD_TOP  + gridH + LABEL_AREA;
+
+  svg.setAttribute("width",  svgNaturalW);
+  svg.setAttribute("height", svgNaturalH);
+
+  // Draw boxes — row 0 in the array = top of chart visually,
+  // but row 0 should be the BOTTOM (row number = rows), so we flip:
+  // visual row vr = rows - 1 - r  maps data row r to screen position vr
+  for (let r = 0; r < rows; r++) {
+    const vr = rows - 1 - r; // flipped: data row 0 → bottom of chart
+    for (let c = 0; c < cols; c++) {
+      const x = PAD_LEFT + c * BOX_W;
+      const y = PAD_TOP  + vr * BOX_H;
+
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute("x", x);
+      rect.setAttribute("y", y);
+      rect.setAttribute("width",  BOX_W);
+      rect.setAttribute("height", BOX_H);
+      rect.setAttribute("fill",   stitchColors[r][c]);
+      rect.setAttribute("stroke", "#5a4a3a");
+      rect.setAttribute("stroke-width", "1");
+      rect.style.cursor = "crosshair";
+
+      const row = r, col = c;
+      function paint(el) {
+        stitchColors[row][col] = selectedColor;
+        el.setAttribute("fill", selectedColor);
+      }
+      rect.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        isDrawing = true; paint(rect); e.preventDefault();
+      });
+      rect.addEventListener("mouseenter", () => { if (isDrawing) paint(rect); });
+
+      svg.appendChild(rect);
+    }
+  }
+
+  // Column numbers below grid
+  const labelY = PAD_TOP + gridH + LABEL_GAP;
+  for (let c = 0; c < cols; c++) {
+    const text = document.createElementNS(svgNS, "text");
+    text.setAttribute("x", PAD_LEFT + c * BOX_W + BOX_W / 2);
+    text.setAttribute("y", labelY);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "hanging");
+    text.setAttribute("font-size", LABEL_SIZE);
+    text.setAttribute("font-family", "Georgia, serif");
+    text.setAttribute("fill", "#8a7a6a");
+    text.setAttribute("pointer-events", "none");
+    text.textContent = c + 1;
+    svg.appendChild(text);
+  }
+
+  // Row numbers to the right — row 1 at bottom, increasing upward
+  // data row r is at visual row (rows-1-r), so screen y = PAD_TOP + (rows-1-r)*BOX_H
+  for (let r = 0; r < rows; r++) {
+    const vr = rows - 1 - r;
+    const text = document.createElementNS(svgNS, "text");
+    text.setAttribute("x", PAD_LEFT + gridW + ROW_LABEL_GAP);
+    text.setAttribute("y", PAD_TOP + vr * BOX_H + BOX_H / 2);
+    text.setAttribute("text-anchor", "start");
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("font-size", LABEL_SIZE);
+    text.setAttribute("font-family", "Georgia, serif");
+    text.setAttribute("fill", "#8a7a6a");
+    text.setAttribute("pointer-events", "none");
+    text.textContent = r + 1;
+    svg.appendChild(text);
+  }
+
+  ZOOM_MIN = computeZoomMin();
+  cssZoom = 1;
+  svg.style.transform = "";
+  chartWrap.style.paddingRight  = "";
+  chartWrap.style.paddingBottom = "";
+}
+
 function renderGrid() {
+  if (viewMode === "box") { renderBoxGrid(); return; }
+
   svg.innerHTML = "";
 
   const { scaleX, scaleY } = getGaugeScale();
